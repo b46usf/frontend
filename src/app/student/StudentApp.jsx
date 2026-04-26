@@ -4,6 +4,8 @@ import SearchBar from '../../components/layout/SearchBar.jsx';
 import StatCard from '../../components/cards/StatCard.jsx';
 import ProgressCard from '../../components/cards/ProgressCard.jsx';
 import AIInsightCard from '../../components/cards/AIInsightCard.jsx';
+import MiniMetricGrid from '../../components/cards/MiniMetricGrid.jsx';
+import ProfileSummaryCard from '../../components/cards/ProfileSummaryCard.jsx';
 import LearningPathCard from '../../components/learning-path/LearningPathCard.jsx';
 import QuizCard from '../../components/quiz/QuizCard.jsx';
 import AIFeedbackCard from '../../components/quiz/AIFeedbackCard.jsx';
@@ -187,22 +189,7 @@ export default function StudentApp({ onLogout }) {
               <span style={{ width: `${quizAnsweredPercent}%` }} />
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {quizMetrics.map((metric) => {
-              const Icon = metric.icon;
-
-              return (
-                <div key={metric.label} className={`quiz-meta-card quiz-meta-${metric.tone} rounded-[14px] px-2 py-2`}>
-                  <span className="quiz-meta-icon mx-auto grid h-7 w-7 place-items-center rounded-[11px]">
-                    <Icon className="text-[14px]" />
-                  </span>
-                  <strong className="quiz-meta-value">{metric.value}</strong>
-                  <span className="quiz-meta-label">{metric.label}</span>
-                  <small className="quiz-meta-helper">{metric.helper}</small>
-                </div>
-              );
-            })}
-          </div>
+          <MiniMetricGrid metrics={quizMetrics} variant="quiz" />
         </section>
         {quiz.questions.map((question) => (
           <QuizCard key={question.id} question={question} value={quiz.answers[question.id]} onChange={(value) => quiz.answerQuestion(question.id, value)} />
@@ -247,32 +234,13 @@ export default function StudentApp({ onLogout }) {
     ),
     profile: (
       <>
-        <section className="profile-card rounded-[20px] p-3.5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[19px] bg-royal text-[17px] font-black text-white">{user.avatar}</div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Profil Siswa</p>
-              <h2 className="mt-1 break-words text-[17px] font-black leading-6">{user.name}</h2>
-              <p className="break-words text-[12px] font-bold leading-4 text-slate-500">{user.school} - {user.className}</p>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {profileMetrics.map((metric) => {
-              const Icon = metric.icon;
-
-              return (
-                <div key={metric.label} className={`profile-mini-card profile-mini-${metric.tone} rounded-[14px] px-2 py-2`}>
-                  <span className="profile-mini-icon mx-auto grid h-7 w-7 place-items-center rounded-[11px]">
-                    <Icon className="text-[14px]" />
-                  </span>
-                  <strong className="profile-mini-value">{metric.value}</strong>
-                  <span className="profile-mini-label">{metric.label}</span>
-                  <small className="profile-mini-helper">{metric.helper}</small>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <ProfileSummaryCard
+          eyebrow="Profil Siswa"
+          avatar={user.avatar}
+          name={user.name}
+          subtitle={`${user.school} - ${user.className}`}
+          metrics={profileMetrics}
+        />
         <ProgressCard title="Target Belajar" value={74} target={85} caption="Riwayat belajar aktif 28 sesi" />
         <ThemePreference />
         <button onClick={onLogout} className="student-danger-btn flex h-12 w-full items-center justify-center rounded-[18px] px-4 text-[13px] font-black text-white" type="button">

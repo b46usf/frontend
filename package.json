@@ -9,18 +9,18 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "latest",
-    "@tailwindcss/postcss": "latest",
-    "postcss": "latest",
-    "zustand": "latest",
-    "sweetalert2": "latest",
-    "recharts": "latest",
-    "framer-motion": "latest",
-    "react-icons": "latest"
+    "@tailwindcss/postcss": "4.2.4",
+    "@vitejs/plugin-react": "6.0.1",
+    "framer-motion": "12.38.0",
+    "postcss": "8.5.10",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "react-icons": "5.6.0",
+    "recharts": "3.8.1",
+    "sweetalert2": "11.26.24",
+    "tailwindcss": "4.2.4",
+    "vite": "8.0.10",
+    "zustand": "5.0.12"
   },
   "devDependencies": {}
 }

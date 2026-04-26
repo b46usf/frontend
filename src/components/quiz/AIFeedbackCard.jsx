@@ -1,4 +1,5 @@
 import { FiCheckCircle, FiCpu, FiTarget, FiTrendingUp } from 'react-icons/fi';
+import MiniMetricGrid from '../cards/MiniMetricGrid.jsx';
 
 export default function AIFeedbackCard({ assessment }) {
   if (!assessment) return null;
@@ -21,21 +22,7 @@ export default function AIFeedbackCard({ assessment }) {
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
-
-          return (
-            <div key={metric.label} className={`ai-feedback-metric ai-feedback-${metric.tone} rounded-[14px] px-2 py-2`}>
-              <span className="ai-feedback-metric-icon mx-auto grid h-7 w-7 place-items-center rounded-[11px]">
-                <Icon className="text-[14px]" />
-              </span>
-              <strong>{metric.value}</strong>
-              <span>{metric.label}</span>
-            </div>
-          );
-        })}
-      </div>
+      <MiniMetricGrid metrics={metrics} variant="feedback" />
 
       <div className="ai-feedback-copy mt-3 rounded-[16px] px-3 py-2">
         <p className="text-[10px] font-black uppercase leading-3 tracking-[0.14em]">AI Insight</p>

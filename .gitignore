@@ -1,3 +1,4 @@
+node_modules/
 /.sixth
 /dist
 /vite-dev.err.log
