@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiBarChart2, FiBookOpen, FiBriefcase, FiCheckCircle, FiDatabase, FiHome, FiKey, FiLogOut, FiRefreshCw, FiSettings, FiShield, FiUploadCloud, FiUser, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBarChart2, FiBookOpen, FiBriefcase, FiCheckCircle, FiDatabase, FiHome, FiKey, FiRefreshCw, FiSettings, FiShield, FiUploadCloud, FiUser, FiUserCheck, FiUsers } from 'react-icons/fi';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
 import StatCard from '../../components/cards/StatCard.jsx';
@@ -8,6 +8,7 @@ import AIInsightCard from '../../components/cards/AIInsightCard.jsx';
 import ChartCard from '../../components/cards/ChartCard.jsx';
 import LevelDistributionChart from '../../components/charts/LevelDistributionChart.jsx';
 import ProfileSummaryCard from '../../components/cards/ProfileSummaryCard.jsx';
+import ProfileStatusPanel from '../../components/cards/ProfileStatusPanel.jsx';
 import { RoleActionGrid, RoleListCard, RoleSectionCard } from '../../components/cards/RoleCards.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
 
@@ -128,13 +129,23 @@ export default function AdminApp({ onLogout }) {
       </>
     ),
     profile: (
-      <>
+      <div className="profile-layout-grid">
         <ProfileSummaryCard
           eyebrow="Profil Admin"
           avatar="AS"
           name="Admin Sekolah"
           subtitle="Operator EduSense AI - SMA Nusantara"
           metrics={profileMetrics}
+        />
+        <ProfileStatusPanel
+          eyebrow="Kontrol Sekolah"
+          title="Kesehatan sistem"
+          description="Status operasional akun, data sekolah, dan sinkronisasi platform."
+          items={[
+            { label: 'Sinkronisasi', value: '99% stabil', helper: 'server sekolah', icon: FiDatabase, tone: 'success' },
+            { label: 'Akses Peran', value: '3 role aktif', helper: 'admin, guru, siswa', icon: FiShield, tone: 'royal' },
+            { label: 'Akun Baru', value: '24 minggu ini', helper: '6 menunggu verifikasi', icon: FiUserCheck, tone: 'gold' },
+          ]}
         />
         <StatCard icon={FiBarChart2} label="Data Tersinkron" value="99%" helper="server sekolah" tone="success" />
         <RoleListCard
@@ -148,11 +159,7 @@ export default function AdminApp({ onLogout }) {
           trailing={<FiCheckCircle className="shrink-0 text-[18px] text-success" />}
         />
         <ThemePreference />
-        <button onClick={onLogout} className="student-danger-btn flex h-12 w-full items-center justify-center rounded-[18px] px-4 text-[13px] font-black text-white" type="button">
-          <FiLogOut className="mr-2" />
-          Keluar
-        </button>
-      </>
+      </div>
     ),
   };
 

@@ -1,4 +1,4 @@
-import { FiActivity, FiAward, FiBarChart2, FiBookOpen, FiCheckCircle, FiClock, FiGlobe, FiHome, FiLogOut, FiPlay, FiTarget, FiTrendingUp, FiUser, FiZap } from 'react-icons/fi';
+import { FiActivity, FiAward, FiBarChart2, FiBookOpen, FiCheckCircle, FiClock, FiGlobe, FiHome, FiPlay, FiTarget, FiTrendingUp, FiUser, FiZap } from 'react-icons/fi';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
 import StatCard from '../../components/cards/StatCard.jsx';
@@ -6,6 +6,7 @@ import ProgressCard from '../../components/cards/ProgressCard.jsx';
 import AIInsightCard from '../../components/cards/AIInsightCard.jsx';
 import MiniMetricGrid from '../../components/cards/MiniMetricGrid.jsx';
 import ProfileSummaryCard from '../../components/cards/ProfileSummaryCard.jsx';
+import ProfileStatusPanel from '../../components/cards/ProfileStatusPanel.jsx';
 import LearningPathCard from '../../components/learning-path/LearningPathCard.jsx';
 import QuizCard from '../../components/quiz/QuizCard.jsx';
 import AIFeedbackCard from '../../components/quiz/AIFeedbackCard.jsx';
@@ -233,7 +234,7 @@ export default function StudentApp({ onLogout }) {
       </>
     ),
     profile: (
-      <>
+      <div className="profile-layout-grid">
         <ProfileSummaryCard
           eyebrow="Profil Siswa"
           avatar={user.avatar}
@@ -241,13 +242,19 @@ export default function StudentApp({ onLogout }) {
           subtitle={`${user.school} - ${user.className}`}
           metrics={profileMetrics}
         />
+        <ProfileStatusPanel
+          eyebrow="Rencana Belajar"
+          title="Prioritas minggu ini"
+          description="Ringkasan personal dari progres belajar dan hasil kuis terbaru."
+          items={[
+            { label: 'Level Aktif', value: learning.level, helper: learning.selectedSubject, icon: FiAward, tone: 'gold' },
+            { label: 'Sesi Belajar', value: '28 sesi', helper: 'riwayat aktif', icon: FiClock, tone: 'royal' },
+            { label: 'Materi Berikutnya', value: 'Fungsi Linear', helper: '2 materi menuju target', icon: FiBookOpen, tone: 'success' },
+          ]}
+        />
         <ProgressCard title="Target Belajar" value={74} target={85} caption="Riwayat belajar aktif 28 sesi" />
         <ThemePreference />
-        <button onClick={onLogout} className="student-danger-btn flex h-12 w-full items-center justify-center rounded-[18px] px-4 text-[13px] font-black text-white" type="button">
-          <FiLogOut className="mr-2" />
-          Keluar
-        </button>
-      </>
+      </div>
     ),
   };
 

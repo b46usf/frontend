@@ -1,6 +1,21 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiBarChart2, FiBookOpen, FiClipboard, FiLock, FiMail, FiShield, FiTrendingUp, FiUserCheck, FiUsers } from 'react-icons/fi';
+import {
+  FiActivity,
+  FiArrowRight,
+  FiBookOpen,
+  FiCheckCircle,
+  FiClipboard,
+  FiCpu,
+  FiLock,
+  FiMail,
+  FiShield,
+  FiTarget,
+  FiTrendingUp,
+  FiUserCheck,
+  FiUsers,
+  FiZap,
+} from 'react-icons/fi';
 import { authenticate } from '../../services/authService.js';
 import { useUserStore } from '../../store/userStore.js';
 import { showToast } from '../../utils/alerts.js';
@@ -10,6 +25,14 @@ const roles = [
   { id: 'teacher', label: 'Guru', helper: 'Pantau kelas, tugas, risiko siswa, dan penilaian.', caption: 'Kelas', badge: 'Analitik', icon: FiClipboard, tone: 'teacher' },
   { id: 'admin', label: 'Admin', helper: 'Kelola akun, kelas, mapel, dan sinkronisasi data.', caption: 'Data', badge: 'Sekolah', icon: FiShield, tone: 'admin' },
 ];
+
+const previewStats = [
+  { label: 'Akurasi', value: '86%', icon: FiTarget, tone: 'royal' },
+  { label: 'Aktif', value: '128', icon: FiUsers, tone: 'success' },
+  { label: 'AI Score', value: '91', icon: FiCpu, tone: 'gold' },
+];
+
+const learningSteps = ['Diagnostik', 'Materi', 'Kuis', 'Feedback'];
 
 export default function LoginPage() {
   const login = useUserStore((state) => state.login);
@@ -28,35 +51,107 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="auth-root sm:flex sm:justify-center">
-      <section className="auth-screen relative min-h-screen w-full overflow-hidden px-4 py-4 sm:max-w-[430px]">
-        <div className="relative z-10 flex min-h-[calc(100vh-2rem)] flex-col justify-between gap-4">
-          <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="pt-1">
-            <div className="flex items-center justify-between">
-              <p className="auth-eyebrow text-[12px] font-black uppercase tracking-[0.24em]">EduSense AI</p>
-              <span className="rounded-full border border-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-200">
-                Seluler
-              </span>
-            </div>
-            <h1 className="mt-4 max-w-[19rem] text-[30px] font-black leading-[1.08] tracking-normal text-white sm:text-4xl">
-              Beranda belajar yang lebih cerdas.
-            </h1>
-            <p className="mt-3 max-w-[22rem] text-[13px] font-semibold leading-6 text-slate-200">
-              Pembelajaran adaptif, kuis otomatis, kemajuan siswa, dan analitik sekolah dalam satu aplikasi.
-            </p>
-          </motion.div>
+    <main className="auth-root">
+      <section className="auth-screen relative min-h-screen w-full overflow-hidden px-4 py-4">
+        <div className="auth-layout relative z-10 flex min-h-[calc(100vh-2rem)] flex-col justify-between gap-4">
+          <div className="auth-hero-block flex flex-col justify-between gap-4">
+            <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="auth-hero-copy pt-1">
+              <div className="flex items-center justify-between">
+                <p className="auth-eyebrow text-[12px] font-black uppercase tracking-[0.24em]">EduSense AI</p>
+                <span className="auth-device-pill rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
+                  Responsive
+                </span>
+              </div>
+              <h1 className="mt-4 max-w-[19rem] text-[30px] font-black leading-[1.08] tracking-normal text-white sm:text-4xl">
+                Beranda belajar yang lebih cerdas.
+              </h1>
+              <p className="mt-3 max-w-[22rem] text-[13px] font-semibold leading-6 text-slate-200">
+                Pembelajaran adaptif, kuis otomatis, kemajuan siswa, dan analitik sekolah dalam satu aplikasi.
+              </p>
+            </motion.div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="auth-showcase">
+              <div className="auth-preview-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="auth-preview-kicker">Live Dashboard</p>
+                    <h2 className="auth-preview-title">Learning cockpit</h2>
+                    <p className="auth-preview-copy">Mode aktif: {selectedRole.label} - {selectedRole.badge}</p>
+                  </div>
+                  <span className="auth-preview-status">
+                    <FiCheckCircle />
+                    Online
+                  </span>
+                </div>
+
+                <div className="auth-preview-metrics">
+                  {previewStats.map((stat) => {
+                    const Icon = stat.icon;
+
+                    return (
+                      <div key={stat.label} className={`auth-preview-metric auth-preview-${stat.tone}`}>
+                        <span>
+                          <Icon />
+                        </span>
+                        <strong>{stat.value}</strong>
+                        <small>{stat.label}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="auth-preview-body">
+                  <div className="auth-path-panel">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p>Adaptive Path</p>
+                        <h3>Fungsi Linear</h3>
+                      </div>
+                      <span>74%</span>
+                    </div>
+                    <div className="auth-path-track">
+                      <span />
+                    </div>
+                    <div className="auth-path-steps">
+                      {learningSteps.map((step, index) => (
+                        <span key={step} className={index < 3 ? 'is-active' : ''}>
+                          {step}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="auth-insight-panel">
+                    <span className="auth-insight-icon">
+                      <FiZap />
+                    </span>
+                    <div className="min-w-0">
+                      <p>AI menemukan topik prioritas berikutnya.</p>
+                      <strong>Latihan gradien 15 menit</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-chart-panel">
+                  {[52, 68, 61, 84, 78, 91].map((height, index) => (
+                    <span key={height + index} style={{ height: `${height}%` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="auth-feature-grid grid grid-cols-3 gap-2">
               {[
                 [FiTrendingUp, 'Adaptif'],
-                [FiBarChart2, 'Progres'],
+                [FiActivity, 'Analitik'],
                 [FiUsers, 'Multi Peran'],
               ].map(([Icon, label]) => (
                 <div key={label} className="auth-shell-card rounded-[18px] px-2 py-3 text-center backdrop-blur">
                   <Icon className="mx-auto text-lg text-gold" />
-                <p className="mt-2 text-[11px] font-black text-slate-100">{label}</p>
-              </div>
-            ))}
+                  <p className="mt-2 text-[11px] font-black text-slate-100">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-panel rounded-[24px] p-4">

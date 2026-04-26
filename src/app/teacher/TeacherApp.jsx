@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiActivity, FiAlertTriangle, FiBarChart2, FiBook, FiCheckCircle, FiClipboard, FiEdit3, FiFileText, FiHome, FiLogOut, FiPlusCircle, FiTrendingDown, FiUser, FiUsers } from 'react-icons/fi';
+import { FiActivity, FiAlertTriangle, FiBarChart2, FiBook, FiCheckCircle, FiClipboard, FiEdit3, FiFileText, FiHome, FiPlusCircle, FiTrendingDown, FiUser, FiUsers } from 'react-icons/fi';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
 import StatCard from '../../components/cards/StatCard.jsx';
@@ -7,6 +7,7 @@ import ProgressCard from '../../components/cards/ProgressCard.jsx';
 import AIInsightCard from '../../components/cards/AIInsightCard.jsx';
 import ChartCard from '../../components/cards/ChartCard.jsx';
 import ProfileSummaryCard from '../../components/cards/ProfileSummaryCard.jsx';
+import ProfileStatusPanel from '../../components/cards/ProfileStatusPanel.jsx';
 import { RoleActionGrid, RoleListCard, RoleSectionCard } from '../../components/cards/RoleCards.jsx';
 import PerformanceLineChart from '../../components/charts/PerformanceLineChart.jsx';
 import LevelDistributionChart from '../../components/charts/LevelDistributionChart.jsx';
@@ -153,7 +154,7 @@ export default function TeacherApp({ onLogout }) {
       </>
     ),
     profile: (
-      <>
+      <div className="profile-layout-grid">
         <ProfileSummaryCard
           eyebrow="Profil Guru"
           avatar="RW"
@@ -161,13 +162,19 @@ export default function TeacherApp({ onLogout }) {
           subtitle="Matematika - SMA Nusantara"
           metrics={profileMetrics}
         />
+        <ProfileStatusPanel
+          eyebrow="Fokus Mengajar"
+          title="Operasional kelas"
+          description="Ringkasan beban kelas dan tindak lanjut yang perlu dipantau."
+          items={[
+            { label: 'Kelas Prioritas', value: 'XI IPA 2', helper: '7 siswa risiko', icon: FiUsers, tone: 'danger' },
+            { label: 'Tugas Aktif', value: '3 penilaian', helper: '12 esai menunggu', icon: FiClipboard, tone: 'royal' },
+            { label: 'Remedial', value: 'Persamaan Linear', helper: 'jadwal singkat disarankan', icon: FiTrendingDown, tone: 'gold' },
+          ]}
+        />
         <ProgressCard title="Kinerja Kelas" value={82} target={88} caption="Rata-rata nilai kelas aktif" />
         <ThemePreference />
-        <button onClick={onLogout} className="student-danger-btn flex h-12 w-full items-center justify-center rounded-[18px] px-4 text-[13px] font-black text-white" type="button">
-          <FiLogOut className="mr-2" />
-          Keluar
-        </button>
-      </>
+      </div>
     ),
   };
 
