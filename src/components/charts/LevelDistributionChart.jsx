@@ -1,12 +1,12 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-const data = [
+const fallbackData = [
   { name: 'Dasar', value: 28, color: '#F59E0B' },
   { name: 'Menengah', value: 46, color: '#155EEF' },
   { name: 'Lanjutan', value: 26, color: '#22C55E' },
 ];
 
-export default function LevelDistributionChart() {
+export default function LevelDistributionChart({ data = fallbackData }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>

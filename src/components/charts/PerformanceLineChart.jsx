@@ -1,6 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const data = [
+const fallbackData = [
   { name: 'Sen', nilai: 72 },
   { name: 'Sel', nilai: 78 },
   { name: 'Rab', nilai: 74 },
@@ -9,7 +9,7 @@ const data = [
   { name: 'Sab', nilai: 84 },
 ];
 
-export default function PerformanceLineChart() {
+export default function PerformanceLineChart({ data = fallbackData }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 8, right: 10, left: -24, bottom: 0 }}>

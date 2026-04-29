@@ -72,6 +72,30 @@ export const useLearningStore = create((set, get) => ({
 
     return result;
   },
+  setDiagnosticResult: (assessment) => {
+    const level = getLevelFromScore(assessment.score);
+    const result = {
+      score: assessment.score,
+      correct: assessment.correct,
+      total: assessment.total,
+      confidence: assessment.confidence,
+      level: assessment.level || assessment.initial_level || assessment.ai_level_result,
+      localLevel: level.local,
+      levelScore: level.score,
+    };
+
+    set((state) => ({
+      level: level.local,
+      progress: Math.max(state.progress, result.score >= 85 ? 72 : result.score >= 60 ? 48 : 26),
+      diagnostic: {
+        ...state.diagnostic,
+        completed: true,
+        result,
+      },
+    }));
+
+    return result;
+  },
   applyAssessmentResult: (assessment) => {
     const level = getLevelFromScore(assessment.score);
 

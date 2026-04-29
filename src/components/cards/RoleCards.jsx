@@ -7,7 +7,7 @@ export function RoleActionGrid({ actions }) {
         const Icon = item.icon;
 
         return (
-          <button key={item.title} type="button" className="role-action-card rounded-[18px] p-3 text-left">
+          <button key={item.title} type="button" onClick={item.onClick} className="role-action-card rounded-[18px] p-3 text-left">
             <span className="role-action-icon grid h-9 w-9 place-items-center rounded-[14px]">
               <Icon className="text-[16px]" />
             </span>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FiAlertTriangle, FiCheckCircle, FiMessageSquare } from 'react-icons/fi';
 
-const students = [
+const fallbackStudents = [
   {
     name: 'Alya Prameswari',
     score: 84,
@@ -34,10 +34,11 @@ const riskMeta = {
   danger: { label: 'Merah', icon: FiAlertTriangle },
 };
 
-export default function RiskStudentPanel() {
-  const [selectedName, setSelectedName] = useState(students[1].name);
-  const selected = students.find((student) => student.name === selectedName) || students[0];
-  const SelectedIcon = riskMeta[selected.tone].icon;
+export default function RiskStudentPanel({ students = fallbackStudents, onSendIntervention }) {
+  const displayStudents = students.length ? students : fallbackStudents;
+  const [selectedName, setSelectedName] = useState(displayStudents[1]?.name || displayStudents[0].name);
+  const selected = displayStudents.find((student) => student.name === selectedName) || displayStudents[0];
+  const SelectedIcon = riskMeta[selected.tone]?.icon || FiAlertTriangle;
 
   return (
     <section className="risk-panel rounded-[20px] p-3.5">
@@ -46,13 +47,13 @@ export default function RiskStudentPanel() {
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Risk Student Detection</p>
           <h3 className="mt-1 break-words text-[15px] font-black leading-5">Prioritas intervensi AI</h3>
         </div>
-        <span className="risk-count rounded-full px-2.5 py-1 text-[10px] font-black leading-3">3 kategori</span>
+        <span className="risk-count rounded-full px-2.5 py-1 text-[10px] font-black leading-3">{displayStudents.length} siswa</span>
       </div>
 
       <div className="mt-3 grid gap-2">
-        {students.map((student) => {
+        {displayStudents.map((student) => {
           const active = student.name === selectedName;
-          const Icon = riskMeta[student.tone].icon;
+          const Icon = riskMeta[student.tone]?.icon || FiAlertTriangle;
 
           return (
             <button
@@ -67,7 +68,7 @@ export default function RiskStudentPanel() {
                 </span>
                 <div className="min-w-0">
                   <p className="break-words text-[12px] font-black leading-4">{student.name}</p>
-                  <p className="text-[10px] font-bold leading-3 text-slate-500">{riskMeta[student.tone].label} - {student.risk}</p>
+                  <p className="text-[10px] font-bold leading-3 text-slate-500">{riskMeta[student.tone]?.label || 'Kuning'} - {student.risk}</p>
                 </div>
               </div>
               <span className="risk-score shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">{student.score}</span>
@@ -90,7 +91,11 @@ export default function RiskStudentPanel() {
         </div>
       </article>
 
-      <button type="button" className="teacher-intervention-btn mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[16px] px-4 text-[12px] font-black text-white">
+      <button
+        type="button"
+        onClick={() => onSendIntervention?.(selected)}
+        className="teacher-intervention-btn mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[16px] px-4 text-[12px] font-black text-white"
+      >
         <FiMessageSquare />
         Kirim Arahan
       </button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FiActivity,
@@ -16,7 +16,7 @@ import {
   FiUsers,
   FiZap,
 } from 'react-icons/fi';
-import { authenticate } from '../../services/authService.js';
+import { authenticate, demoAccounts, registerAccount } from '../../services/authService.js';
 import { useUserStore } from '../../store/userStore.js';
 import { showToast } from '../../utils/alerts.js';
 
@@ -35,18 +35,53 @@ const previewStats = [
 const learningSteps = ['Diagnostik', 'Materi', 'Kuis', 'Feedback'];
 
 export default function LoginPage() {
-  const login = useUserStore((state) => state.login);
+  const setSession = useUserStore((state) => state.setSession);
   const [mode, setMode] = useState('login');
   const [role, setRole] = useState('student');
+  const [name, setName] = useState('Akun Demo Baru');
+  const [email, setEmail] = useState(demoAccounts.student.email);
+  const [password, setPassword] = useState(demoAccounts.student.password);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedRole = roles.find((item) => item.id === role) || roles[0];
+
+  useEffect(() => {
+    if (mode === 'login') {
+      setEmail(demoAccounts[role]?.email || demoAccounts.student.email);
+      setPassword(demoAccounts[role]?.password || demoAccounts.student.password);
+      return;
+    }
+
+    setName(role === 'teacher' ? 'Guru Demo Baru' : role === 'admin' ? 'Admin Demo Baru' : 'Siswa Demo Baru');
+    setEmail(`new-${role}-${Date.now()}@edusense.ai`);
+    setPassword('demo12345');
+  }, [mode, role]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const response = await authenticate({ role });
+    setIsSubmitting(true);
 
-    if (response.ok) {
-      login(role);
-      showToast({ title: `${mode === 'login' ? 'Masuk' : 'Pendaftaran'} berhasil` });
+    try {
+      const response = mode === 'login'
+        ? await authenticate({ email, password, role })
+        : await registerAccount({ name, email, password, role });
+
+      if (response.ok && response.token) {
+        setSession({ token: response.token, user: response.user });
+        showToast({ title: `${mode === 'login' ? 'Masuk' : 'Pendaftaran'} berhasil` });
+        return;
+      }
+
+      showToast({
+        icon: 'info',
+        title: 'Pendaftaran berhasil, menunggu verifikasi admin',
+      });
+    } catch (error) {
+      showToast({
+        icon: 'error',
+        title: error.message || 'Gagal menghubungi backend',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,21 +265,42 @@ export default function LoginPage() {
               <label className="auth-field mt-3 flex h-12 items-center gap-3 rounded-[18px] px-3.5">
                 <FiUserCheck className="shrink-0 text-royal" />
                 <span className="sr-only">Nama lengkap</span>
-                <input className="w-full bg-transparent text-sm font-bold outline-none" placeholder="Nama lengkap" />
+                <input
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                  placeholder="Nama lengkap"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
               </label>
             )}
             <label className="auth-field mt-3 flex h-12 items-center gap-3 rounded-[18px] px-3.5">
               <FiMail className="shrink-0 text-royal" />
               <span className="sr-only">Email sekolah</span>
-              <input className="w-full bg-transparent text-sm font-bold outline-none" placeholder="Email sekolah" defaultValue="demo@edusense.ai" />
+              <input
+                className="w-full bg-transparent text-sm font-bold outline-none"
+                placeholder="Email sekolah"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </label>
             <label className="auth-field mt-2.5 flex h-12 items-center gap-3 rounded-[18px] px-3.5">
               <FiLock className="shrink-0 text-royal" />
               <span className="sr-only">Password</span>
-              <input className="w-full bg-transparent text-sm font-bold outline-none" placeholder="Password" type="password" defaultValue="demo12345" />
+              <input
+                className="w-full bg-transparent text-sm font-bold outline-none"
+                placeholder="Password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
             </label>
-            <button type="submit" className="auth-primary mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[18px] px-4 text-sm font-black transition active:scale-[0.99]">
-              {mode === 'login' ? 'Masuk Beranda' : 'Buat Akun'}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="auth-primary mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[18px] px-4 text-sm font-black transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
+            >
+              {isSubmitting ? 'Memproses...' : mode === 'login' ? 'Masuk Beranda' : 'Buat Akun'}
               <FiArrowRight />
             </button>
             <p className="auth-footnote mt-3 text-center text-[11px] font-bold">

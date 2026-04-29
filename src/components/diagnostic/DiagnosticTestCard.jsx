@@ -8,6 +8,7 @@ export default function DiagnosticTestCard({ diagnostic, onAnswer, onComplete })
   const progress = Math.round((answered / total) * 100);
   const activeQuestion = diagnostic.questions[activeIndex];
   const selectedAnswer = diagnostic.answers[activeQuestion.id];
+  const options = activeQuestion.options || [];
   const unanswered = Math.max(total - answered, 0);
   const estimatedLevel = useMemo(() => {
     if (progress >= 80) return 'Advanced';
@@ -93,8 +94,9 @@ export default function DiagnosticTestCard({ diagnostic, onAnswer, onComplete })
           <span className="diagnostic-topic shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black leading-3">{activeQuestion.topic}</span>
         </div>
 
-        <div className="mt-3 grid gap-2">
-          {activeQuestion.options.map((option) => {
+        {options.length > 0 ? (
+          <div className="mt-3 grid gap-2">
+            {options.map((option) => {
             const selected = selectedAnswer === option;
 
             return (
@@ -110,8 +112,16 @@ export default function DiagnosticTestCard({ diagnostic, onAnswer, onComplete })
                 </span>
               </button>
             );
-          })}
-        </div>
+            })}
+          </div>
+        ) : (
+          <textarea
+            value={selectedAnswer || ''}
+            onChange={(event) => handleAnswer(event.target.value)}
+            className="quiz-textarea mt-3 min-h-24 w-full rounded-[16px] p-3 text-[13px] font-semibold outline-none"
+            placeholder="Tulis jawaban singkat..."
+          />
+        )}
       </article>
 
       <div className="mt-3 grid grid-cols-2 gap-2">

@@ -19,8 +19,8 @@ const defaultMetrics = {
   ],
 };
 
-export default function PerformanceTrendPanel({ role = 'student', title = 'Performance Trend' }) {
-  const metrics = defaultMetrics[role] || defaultMetrics.student;
+export default function PerformanceTrendPanel({ role = 'student', title = 'Performance Trend', metrics: providedMetrics }) {
+  const metrics = providedMetrics || defaultMetrics[role] || defaultMetrics.student;
 
   return (
     <section className="trend-panel rounded-[20px] p-3.5">
