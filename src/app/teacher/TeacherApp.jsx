@@ -15,6 +15,7 @@ import BadgeCard from '../../components/cards/BadgeCard.jsx';
 import PerformanceTrendPanel from '../../components/analytics/PerformanceTrendPanel.jsx';
 import RiskStudentPanel from '../../components/teacher/RiskStudentPanel.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
+import EmptyState from '../../components/ai/EmptyState.jsx';
 import { useUserStore } from '../../store/userStore.js';
 import { api } from '../../services/api.js';
 import { normalizeLevelDistribution, normalizeTrendSeries } from '../../services/adapters.js';
@@ -28,21 +29,6 @@ const navItems = [
   { id: 'profile', label: 'Profil', icon: FiUser },
 ];
 
-const studentRows = ['Alya Prameswari', 'Raka Putra', 'Nadia Zahra', 'Dimas Akbar'];
-
-const taskActions = [
-  { title: 'Buat Kuis', helper: 'Generator soal adaptif', icon: FiPlusCircle },
-  { title: 'Bank Soal', helper: '128 soal siap pakai', icon: FiFileText },
-  { title: 'Tinjau Esai', helper: '12 jawaban menunggu', icon: FiEdit3 },
-  { title: 'Hasil Otomatis', helper: 'Penilaian terbaru', icon: FiCheckCircle },
-];
-
-const profileMetrics = [
-  { label: 'Kelas', value: '4', helper: 'aktif', icon: FiBook, tone: 'royal' },
-  { label: 'Siswa', value: '128', helper: '7 prioritas', icon: FiUsers, tone: 'success' },
-  { label: 'Rata', value: '82', helper: 'kelas XI', icon: FiActivity, tone: 'gold' },
-];
-
 export default function TeacherApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const dashboardBundle = useUserStore((state) => state.dashboards.teacher);
@@ -54,23 +40,38 @@ export default function TeacherApp({ onLogout }) {
   const attempts = dashboardBundle?.attempts || [];
   const recommendations = dashboardBundle?.recommendations || [];
   const materials = dashboardBundle?.materials || [];
-  const counts = analytics.counts || {};
-  const progress = analytics.progress || {};
-  const averageScore = Math.round(Number(counts.average_quiz_score || 0));
-  const activeClassCount = classes.length || 4;
-  const studentCount = Number(counts.total_students || students.length || 128);
+  const averageScore = Math.round(Number(analytics.average_quiz_score || 0));
+  const activeClassCount = classes.length;
+  const studentCount = Number(analytics.total_students || students.length || 0);
   const riskCount = riskStudents.filter((student) => student.tone !== 'safe').length;
-  const activityCount = attempts.length || 342;
-  const classEngagement = Math.round(Number(progress.average_progress_percent || 76));
+  const activityCount = attempts.length;
+  const classEngagement = Math.round(Number(analytics.average_progress_percent || 0));
+  const averageAccuracy = attempts.length
+    ? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.accuracy_rate || 0), 0) / attempts.length)
+    : 0;
+  const averageTimeMinutes = attempts.length
+    ? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.time_spent_seconds || 0), 0) / attempts.length / 60)
+    : 0;
   const levelDistribution = useMemo(() => normalizeLevelDistribution(students), [students]);
   const performanceData = useMemo(
     () => normalizeTrendSeries(attempts.slice(0, 6).reverse().map((attempt) => ({ ...attempt, submitted_at: attempt.submitted_at || attempt.started_at }))),
     [attempts],
   );
+  const taskActions = [
+    { title: 'Buat Kuis', helper: materials.length ? `${materials.length} materi tersedia` : 'Butuh materi backend', icon: FiPlusCircle },
+    { title: 'Bank Soal', helper: `${attempts.length} attempt tersimpan`, icon: FiFileText },
+    { title: 'Tinjau Esai', helper: `${attempts.filter((attempt) => String(attempt.quiz_title || '').toLowerCase().includes('esai')).length} esai terdeteksi`, icon: FiEdit3 },
+    { title: 'Hasil Otomatis', helper: 'Penilaian dari backend', icon: FiCheckCircle },
+  ];
+  const profileMetrics = [
+    { label: 'Kelas', value: activeClassCount, helper: 'aktif', icon: FiBook, tone: 'royal' },
+    { label: 'Siswa', value: studentCount, helper: `${riskCount} prioritas`, icon: FiUsers, tone: 'success' },
+    { label: 'Rata', value: averageScore, helper: 'kelas aktif', icon: FiActivity, tone: 'gold' },
+  ];
   const trendMetrics = [
-    { label: 'Rata-rata', value: averageScore || 82, helper: 'kelas aktif', icon: FiTrendingDown, tone: 'royal' },
-    { label: 'Akurasi', value: `${Math.round(Number(analytics.counts?.average_accuracy || 79))}%`, helper: 'kuis terbaru', icon: FiActivity, tone: 'success' },
-    { label: 'Waktu', value: `${Math.round(Number(attempts[0]?.time_spent_seconds || 660) / 60)}m`, helper: 'median', icon: FiClipboard, tone: 'gold' },
+    { label: 'Rata-rata', value: averageScore, helper: 'kelas aktif', icon: FiTrendingDown, tone: 'royal' },
+    { label: 'Akurasi', value: `${averageAccuracy}%`, helper: 'attempt terbaru', icon: FiActivity, tone: 'success' },
+    { label: 'Waktu', value: `${averageTimeMinutes}m`, helper: 'rata-rata', icon: FiClipboard, tone: 'gold' },
     { label: 'Percobaan', value: activityCount, helper: 'data attempt', icon: FiCheckCircle, tone: 'royal' },
     { label: 'Konsisten', value: `${classEngagement}%`, helper: 'kelas aktif', icon: FiUsers, tone: 'success' },
     { label: 'Risiko', value: riskCount, helper: 'prioritas', icon: FiAlertTriangle, tone: 'gold' },
@@ -142,7 +143,7 @@ export default function TeacherApp({ onLogout }) {
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Fokus Hari Ini</p>
-              <h2 className="mt-1 break-words text-[17px] font-black leading-6">Pantau kelas XI</h2>
+              <h2 className="mt-1 break-words text-[17px] font-black leading-6">Pantau kelas aktif</h2>
               <p className="mt-1 text-[12px] font-bold text-slate-500">{riskCount} siswa perlu intervensi dan {attempts.length} attempt terbaru siap direview.</p>
             </div>
             <div className="role-summary-icon grid h-12 w-12 shrink-0 place-items-center rounded-[17px]">
@@ -152,11 +153,11 @@ export default function TeacherApp({ onLogout }) {
         </section>
         <div className="grid grid-cols-2 gap-2.5">
           <StatCard icon={FiUsers} label="Total Siswa" value={studentCount} helper={`${activeClassCount} kelas aktif`} tone="royal" />
-          <StatCard icon={FiActivity} label="Rata-rata" value={averageScore || 82} helper="kelas XI" tone="success" />
+          <StatCard icon={FiActivity} label="Rata-rata" value={averageScore} helper="kelas aktif" tone="success" />
           <StatCard icon={FiTrendingDown} label="Risiko" value={riskCount} helper="perlu intervensi" tone="danger" />
           <StatCard icon={FiBook} label="Aktivitas" value={activityCount} helper="attempt tersimpan" tone="gold" />
         </div>
-        <AIInsightCard text={recommendations[0]?.reason || 'AI menemukan kesenjangan belajar terbesar pada topik persamaan linear. Jadwalkan remedial singkat untuk siswa prioritas.'} action="Buka intervensi" />
+        <AIInsightCard text={recommendations[0]?.reason || 'Belum ada rekomendasi AI baru dari backend.'} action="Buka intervensi" />
         <RoleSectionCard
           eyebrow="Automated Assessment"
           title="Data kuis siswa tersimpan"
@@ -182,12 +183,13 @@ export default function TeacherApp({ onLogout }) {
           eyebrow="Kelas Aktif"
           title="Monitoring siswa"
           description="Performa kelas dan daftar siswa prioritas."
-          trailing={<span className="role-pill shrink-0 rounded-full px-3 py-1 text-[11px] font-black">3 Kelas</span>}
+          trailing={<span className="role-pill shrink-0 rounded-full px-3 py-1 text-[11px] font-black">{activeClassCount} Kelas</span>}
         />
-        {(classes.length ? classes : ['XI IPA 1', 'XI IPA 2', 'X IPS 1']).map((item, index) => {
-          const className = item.class_name || item.name || item;
-          const totalStudents = item.total_students || (32 + index * 3);
-          const score = Math.round(Number(item.average_total_score || 82 - index));
+        {classes.length === 0 && <EmptyState title="Belum ada kelas" message="Data kelas akan tampil setelah guru terhubung ke rombel." />}
+        {classes.map((item) => {
+          const className = item.class_name || item.name;
+          const totalStudents = Number(item.total_students || 0);
+          const score = Math.round(Number(item.average_total_score || 0));
 
           return (
           <RoleListCard
@@ -203,11 +205,12 @@ export default function TeacherApp({ onLogout }) {
         <div className="role-section-card rounded-[18px] p-3">
           <h3 className="text-[14px] font-black leading-5">Detail Siswa</h3>
           <div className="mt-3 grid gap-2">
-            {(students.length ? students.map((student) => student.name) : studentRows).map((name, index) => (
-              <div key={name} className="role-row flex items-center justify-between gap-3 rounded-[15px] p-2.5">
-                <span className="break-words text-[12px] font-black leading-4">{name}</span>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${index === 1 ? 'role-pill-danger' : 'role-pill-success'}`}>
-                  {index === 1 ? 'Risiko' : 'Stabil'}
+            {students.length === 0 && <EmptyState title="Belum ada siswa" message="Daftar siswa akan tampil setelah data kelas tersedia." />}
+            {students.map((student) => (
+              <div key={student.id || student.user_id || student.name} className="role-row flex items-center justify-between gap-3 rounded-[15px] p-2.5">
+                <span className="break-words text-[12px] font-black leading-4">{student.name}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${student.risk_status === 'danger' ? 'role-pill-danger' : 'role-pill-success'}`}>
+                  {student.risk_status === 'danger' ? 'Risiko' : student.risk_status || 'Stabil'}
                 </span>
               </div>
             ))}
@@ -224,11 +227,12 @@ export default function TeacherApp({ onLogout }) {
           trailing={<FiClipboard className="shrink-0 text-[20px] text-royal" />}
         />
         <RoleActionGrid actions={taskActionsWithHandlers} />
-        {(attempts.length ? attempts.slice(0, 5).map((attempt) => attempt.quiz_title) : ['Kuis Fungsi Linear', 'Esai Trigonometri', 'Remedial Pecahan']).map((item, index) => (
+        {attempts.length === 0 && <EmptyState title="Belum ada attempt" message="Hasil penilaian akan tampil setelah siswa mengirim kuis." />}
+        {attempts.slice(0, 5).map((attempt, index) => (
           <RoleListCard
-            key={item}
-            title={item}
-            subtitle={`${attempts[index]?.student_name || 18 + index * 7} - otomatis dinilai`}
+            key={attempt.id || `${attempt.quiz_title}-${index}`}
+            title={attempt.quiz_title || 'Kuis'}
+            subtitle={`${attempt.student_name || 'Siswa'} - otomatis dinilai`}
             trailing={<span className="role-pill rounded-full px-3 py-1 text-[11px] font-black">Aktif</span>}
           />
         ))}
@@ -247,18 +251,18 @@ export default function TeacherApp({ onLogout }) {
         </ChartCard>
         <PerformanceTrendPanel role="teacher" title="Kinerja kelas dan engagement" metrics={trendMetrics} />
         <RiskStudentPanel students={riskStudents} onSendIntervention={sendIntervention} />
-        <BadgeCard title="Kesenjangan Belajar" subtitle="Persamaan linear, pecahan, dan trigonometri dasar" />
-        <BadgeCard title="Keterlibatan" subtitle="76% siswa aktif minimal 4 hari minggu ini" />
-        <BadgeCard title="Tingkat Penyelesaian" subtitle="89% tugas selesai tepat waktu" />
+        <BadgeCard title="Rekomendasi AI" subtitle={`${recommendations.length} rekomendasi aktif dari backend`} />
+        <BadgeCard title="Keterlibatan" subtitle={`${classEngagement}% rata-rata progres belajar`} />
+        <BadgeCard title="Aktivitas Kuis" subtitle={`${activityCount} attempt tersimpan`} />
       </>
     ),
     profile: (
       <div className="profile-layout-grid">
         <ProfileSummaryCard
           eyebrow="Profil Guru"
-          avatar="RW"
-          name={user.name || 'Bu Rani Wijaya'}
-          subtitle={`${user.className || 'Matematika'} - ${user.school || 'SMA Nusantara'}`}
+          avatar={user.avatar}
+          name={user.name || 'Guru'}
+          subtitle={`${user.className || 'Pengajar'} - ${user.school || 'Sekolah'}`}
           metrics={profileMetrics}
         />
         <ProfileStatusPanel
@@ -266,12 +270,12 @@ export default function TeacherApp({ onLogout }) {
           title="Operasional kelas"
           description="Ringkasan beban kelas dan tindak lanjut yang perlu dipantau."
           items={[
-            { label: 'Kelas Prioritas', value: 'XI IPA 2', helper: '7 siswa risiko', icon: FiUsers, tone: 'danger' },
-            { label: 'Tugas Aktif', value: '3 penilaian', helper: '12 esai menunggu', icon: FiClipboard, tone: 'royal' },
-            { label: 'Remedial', value: 'Persamaan Linear', helper: 'jadwal singkat disarankan', icon: FiTrendingDown, tone: 'gold' },
+            { label: 'Kelas Prioritas', value: riskStudents[0]?.className || '-', helper: `${riskCount} siswa risiko`, icon: FiUsers, tone: 'danger' },
+            { label: 'Tugas Aktif', value: `${activityCount} penilaian`, helper: 'attempt backend', icon: FiClipboard, tone: 'royal' },
+            { label: 'Materi', value: `${materials.length} tersedia`, helper: 'untuk kuis adaptif', icon: FiTrendingDown, tone: 'gold' },
           ]}
         />
-        <ProgressCard title="Kinerja Kelas" value={82} target={88} caption="Rata-rata nilai kelas aktif" />
+        <ProgressCard title="Kinerja Kelas" value={averageScore} target={88} caption="Rata-rata nilai kelas aktif" />
         <ThemePreference />
       </div>
     ),

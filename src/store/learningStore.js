@@ -1,18 +1,5 @@
 import { create } from 'zustand';
 
-const diagnosticQuestions = [
-  { id: 'd1', topic: 'Aljabar', difficulty: 'Basic', prompt: 'Tentukan nilai x dari persamaan 2x + 4 = 12.', options: ['2', '4', '6'], answer: '4' },
-  { id: 'd2', topic: 'Fungsi', difficulty: 'Basic', prompt: 'Jika f(x) = x + 5, berapa nilai f(3)?', options: ['5', '8', '15'], answer: '8' },
-  { id: 'd3', topic: 'Grafik', difficulty: 'Basic', prompt: 'Garis dengan gradien positif cenderung bergerak ke arah mana?', options: ['Naik', 'Turun', 'Datar'], answer: 'Naik' },
-  { id: 'd4', topic: 'Gradien', difficulty: 'Intermediate', prompt: 'Berapa gradien dari garis y = 3x - 2?', options: ['-2', '2', '3'], answer: '3' },
-  { id: 'd5', topic: 'Persamaan', difficulty: 'Intermediate', prompt: 'Pilih bentuk umum yang paling tepat untuk fungsi linear.', options: ['ax + b', 'ax2 + b', 'a/x'], answer: 'ax + b' },
-  { id: 'd6', topic: 'Analisis', difficulty: 'Intermediate', prompt: 'Jika nilai gradien makin besar, bentuk garis akan terlihat seperti apa?', options: ['Lebih curam', 'Lebih datar', 'Tidak berubah'], answer: 'Lebih curam' },
-  { id: 'd7', topic: 'Aplikasi', difficulty: 'Intermediate', prompt: 'Harga awal 10.000 naik 2.000 per item. Model yang tepat ...', options: ['y=2000x+10000', 'y=10000x+2000', 'y=12000x'], answer: 'y=2000x+10000' },
-  { id: 'd8', topic: 'Interpretasi', difficulty: 'Advanced', prompt: 'Pada persamaan y = 5x + 1, angka 5 menunjukkan apa?', options: ['Laju perubahan', 'Nilai awal', 'Titik akhir'], answer: 'Laju perubahan' },
-  { id: 'd9', topic: 'Prediksi', difficulty: 'Advanced', prompt: 'Jika pola linear stabil, konsep apa yang dipakai untuk prediksi nilai berikutnya?', options: ['Gradien', 'Akar', 'Luas'], answer: 'Gradien' },
-  { id: 'd10', topic: 'Evaluasi', difficulty: 'Advanced', prompt: 'Dua garis sejajar memiliki hubungan gradien seperti apa?', options: ['Sama', 'Berlawanan', 'Nol'], answer: 'Sama' },
-];
-
 const getLevelFromScore = (score) => {
   if (score >= 85) return { local: 'Lanjutan', global: 'Advanced', score: 3 };
   if (score >= 60) return { local: 'Menengah', global: 'Intermediate', score: 2 };
@@ -20,6 +7,20 @@ const getLevelFromScore = (score) => {
 };
 
 const scoreDiagnostic = (questions, answers) => {
+  if (!questions.length) {
+    const level = getLevelFromScore(0);
+
+    return {
+      score: 0,
+      correct: 0,
+      total: 0,
+      confidence: 0,
+      level: level.global,
+      localLevel: level.local,
+      levelScore: level.score,
+    };
+  }
+
   const correct = questions.filter((question) => String(answers[question.id] || '').trim() === question.answer).length;
   const score = Math.round((correct / questions.length) * 100);
   const level = getLevelFromScore(score);
@@ -36,15 +37,15 @@ const scoreDiagnostic = (questions, answers) => {
 };
 
 export const useLearningStore = create((set, get) => ({
-  selectedSubject: 'Matematika',
-  level: 'Menengah',
-  streak: 12,
-  progress: 68,
-  badges: ['Pemula AI', 'Runtun 7 Hari', 'Jago Kuis'],
-  subjects: ['Matematika', 'Fisika', 'Biologi', 'Bahasa Inggris'],
+  selectedSubject: '',
+  level: 'Dasar',
+  streak: 0,
+  progress: 0,
+  badges: [],
+  subjects: [],
   diagnostic: {
     completed: false,
-    questions: diagnosticQuestions,
+    questions: [],
     answers: {},
     result: null,
   },

@@ -1,15 +1,14 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const fallbackData = [
-  { name: 'Sen', nilai: 72 },
-  { name: 'Sel', nilai: 78 },
-  { name: 'Rab', nilai: 74 },
-  { name: 'Kam', nilai: 86 },
-  { name: 'Jum', nilai: 90 },
-  { name: 'Sab', nilai: 84 },
-];
+export default function PerformanceLineChart({ data = [] }) {
+  if (!data.length) {
+    return (
+      <div className="grid h-full min-h-40 place-items-center px-4 text-center">
+        <p className="text-[12px] font-bold text-slate-500">Belum ada data tren performa.</p>
+      </div>
+    );
+  }
 
-export default function PerformanceLineChart({ data = fallbackData }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 8, right: 10, left: -24, bottom: 0 }}>

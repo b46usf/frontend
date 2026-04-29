@@ -11,10 +11,11 @@ import ProfileSummaryCard from '../../components/cards/ProfileSummaryCard.jsx';
 import ProfileStatusPanel from '../../components/cards/ProfileStatusPanel.jsx';
 import { RoleActionGrid, RoleListCard, RoleSectionCard } from '../../components/cards/RoleCards.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
+import EmptyState from '../../components/ai/EmptyState.jsx';
 import { useUserStore } from '../../store/userStore.js';
 import { api } from '../../services/api.js';
 import { normalizeLevelDistribution } from '../../services/adapters.js';
-import { showToast } from '../../utils/alerts.js';
+import { showConfirmDialog, showToast } from '../../utils/alerts.js';
 
 const navItems = [
   { id: 'dashboard', label: 'Beranda', icon: FiHome },
@@ -24,25 +25,35 @@ const navItems = [
   { id: 'profile', label: 'Profil', icon: FiUser },
 ];
 
-const accountActions = [
-  { title: 'Impor Akun Siswa', helper: 'CSV / sinkron data', icon: FiUploadCloud },
-  { title: 'Verifikasi Guru', helper: '48 akun aktif', icon: FiUserCheck },
-  { title: 'Atur Ulang Sandi', helper: 'Massal atau manual', icon: FiKey },
-  { title: 'Kelola Peran', helper: 'Admin, guru, siswa', icon: FiShield },
-];
+const getCurrentAcademicYear = () => {
+  const now = new Date();
+  const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
 
-const profileMetrics = [
-  { label: 'Siswa', value: '812', helper: 'akun aktif', icon: FiUsers, tone: 'royal' },
-  { label: 'Guru', value: '48', helper: 'terverifikasi', icon: FiUserCheck, tone: 'success' },
-  { label: 'Kelas', value: '26', helper: 'tahun ajaran', icon: FiBriefcase, tone: 'gold' },
-];
+  return `${startYear}/${startYear + 1}`;
+};
+
+const generateTemporaryPassword = () => {
+  const random = globalThis.crypto?.getRandomValues
+    ? globalThis.crypto.getRandomValues(new Uint32Array(1))[0].toString(36)
+    : Date.now().toString(36);
+
+  return `Edu-${random.slice(0, 8)}!`;
+};
+
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
 export default function AdminApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [className, setClassName] = useState('XII IPA 1');
-  const [gradeLevel, setGradeLevel] = useState('XII');
-  const [subjectName, setSubjectName] = useState('Kimia');
-  const [subjectCode, setSubjectCode] = useState('KIM');
+  const [className, setClassName] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [subjectName, setSubjectName] = useState('');
+  const [subjectCode, setSubjectCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const dashboardBundle = useUserStore((state) => state.dashboards.admin);
   const user = useUserStore((state) => state.user);
@@ -53,13 +64,28 @@ export default function AdminApp({ onLogout }) {
   const students = dashboardBundle?.students || [];
   const analytics = dashboardBundle?.analytics || {};
   const leaderboard = dashboardBundle?.leaderboard || [];
-  const counts = analytics.counts || {};
-  const studentCount = Number(counts.total_students || students.length || 812);
-  const teacherCount = Number(counts.total_teachers || teachers.length || 48);
-  const classCount = classes.length || 26;
-  const subjectCount = subjects.length || 14;
-  const averageScore = Math.round(Number(counts.average_quiz_score || 82));
+  const studentCount = Number(analytics.total_students || students.length || 0);
+  const teacherCount = Number(analytics.total_teachers || teachers.length || 0);
+  const classCount = classes.length;
+  const subjectCount = subjects.length;
+  const averageScore = Math.round(Number(analytics.average_quiz_score || 0));
+  const completedMaterials = Number(analytics.completed_materials || 0);
+  const totalProgressRecords = Number(analytics.total_progress_records || 0);
+  const activationPercent = totalProgressRecords
+    ? Math.round((completedMaterials / totalProgressRecords) * 100)
+    : 0;
   const levelDistribution = useMemo(() => normalizeLevelDistribution(students), [students]);
+  const accountActions = [
+    { title: 'Impor Akun Siswa', helper: 'Input akun baru', icon: FiUploadCloud },
+    { title: 'Verifikasi Guru', helper: `${teachers.filter((teacher) => teacher.status === 'inactive').length} menunggu`, icon: FiUserCheck },
+    { title: 'Atur Ulang Sandi', helper: students.length ? 'Siswa pertama di daftar' : 'Belum ada siswa', icon: FiKey },
+    { title: 'Kelola Peran', helper: `${teacherCount + studentCount} akun terdata`, icon: FiShield },
+  ];
+  const profileMetrics = [
+    { label: 'Siswa', value: studentCount, helper: 'akun aktif', icon: FiUsers, tone: 'royal' },
+    { label: 'Guru', value: teacherCount, helper: 'terverifikasi', icon: FiUserCheck, tone: 'success' },
+    { label: 'Kelas', value: classCount, helper: 'tahun ajaran', icon: FiBriefcase, tone: 'gold' },
+  ];
 
   const refreshDashboard = async () => {
     const nextDashboard = await api.getAdminDashboard();
@@ -73,9 +99,11 @@ export default function AdminApp({ onLogout }) {
       await api.createClass({
         name: className,
         gradeLevel,
-        academicYear: '2025/2026',
+        academicYear: getCurrentAcademicYear(),
       });
       await refreshDashboard();
+      setClassName('');
+      setGradeLevel('');
       showToast({ title: 'Kelas berhasil dibuat' });
     } catch (error) {
       showToast({ icon: 'error', title: error.message || 'Gagal membuat kelas' });
@@ -91,9 +119,11 @@ export default function AdminApp({ onLogout }) {
       await api.createSubject({
         name: subjectName,
         code: `${subjectCode}-${Date.now().toString().slice(-4)}`,
-        description: `${subjectName} demo dari panel admin.`,
+        description: `Dibuat dari panel admin.`,
       });
       await refreshDashboard();
+      setSubjectName('');
+      setSubjectCode('');
       showToast({ title: 'Mapel berhasil dibuat' });
     } catch (error) {
       showToast({ icon: 'error', title: error.message || 'Gagal membuat mapel' });
@@ -102,17 +132,51 @@ export default function AdminApp({ onLogout }) {
     }
   };
 
-  const importDemoStudent = async () => {
+  const importStudent = async () => {
+    if (!classes.length) {
+      showToast({ icon: 'warning', title: 'Buat kelas terlebih dahulu sebelum impor siswa' });
+      return;
+    }
+
+    const classOptions = classes
+      .map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`)
+      .join('');
+    const result = await showConfirmDialog({
+      title: 'Impor Akun Siswa',
+      html: `
+        <div class="grid gap-2 text-left">
+          <input id="import-name" class="swal2-input" placeholder="Nama siswa" />
+          <input id="import-email" class="swal2-input" type="email" placeholder="Email siswa" />
+          <input id="import-password" class="swal2-input" type="password" placeholder="Password sementara" />
+          <select id="import-class" class="swal2-select">${classOptions}</select>
+        </div>
+      `,
+      confirmButtonText: 'Impor',
+      preConfirm: () => {
+        const name = document.getElementById('import-name')?.value?.trim();
+        const email = document.getElementById('import-email')?.value?.trim();
+        const password = document.getElementById('import-password')?.value || '';
+        const classId = Number(document.getElementById('import-class')?.value);
+
+        if (!name || !email || password.length < 8 || !classId) {
+          return null;
+        }
+
+        return { name, email, password, classId };
+      },
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    if (!result.value) {
+      showToast({ icon: 'warning', title: 'Lengkapi nama, email, kelas, dan password minimal 8 karakter' });
+      return;
+    }
+
     try {
-      await api.importUsers([
-        {
-          name: 'Siswa Import Demo',
-          email: `import-${Date.now()}@edusense.ai`,
-          password: 'demo12345',
-          role: 'student',
-          classId: classes[0]?.id,
-        },
-      ]);
+      await api.importUsers([{ ...result.value, role: 'student' }]);
       await refreshDashboard();
       showToast({ title: 'Akun siswa berhasil diimpor' });
     } catch (error) {
@@ -129,8 +193,9 @@ export default function AdminApp({ onLogout }) {
     }
 
     try {
-      await api.resetUserPassword(target.user_id, 'demo12345');
-      showToast({ title: `Sandi ${target.name} direset ke demo12345` });
+      const temporaryPassword = generateTemporaryPassword();
+      await api.resetUserPassword(target.user_id, temporaryPassword);
+      showToast({ title: `Sandi sementara ${target.name}: ${temporaryPassword}` });
     } catch (error) {
       showToast({ icon: 'error', title: error.message || 'Gagal reset sandi' });
     }
@@ -154,7 +219,7 @@ export default function AdminApp({ onLogout }) {
   };
 
   const accountActionsWithHandlers = accountActions.map((action) => {
-    if (action.title === 'Impor Akun Siswa') return { ...action, onClick: importDemoStudent };
+    if (action.title === 'Impor Akun Siswa') return { ...action, onClick: importStudent };
     if (action.title === 'Verifikasi Guru') return { ...action, onClick: verifyFirstTeacher };
     if (action.title === 'Atur Ulang Sandi') return { ...action, onClick: resetFirstStudentPassword };
     return { ...action, onClick: () => showToast({ icon: 'info', title: `${action.title} memakai role aktif dari backend` }) };
@@ -167,7 +232,7 @@ export default function AdminApp({ onLogout }) {
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Operasional Sekolah</p>
-              <h2 className="mt-1 break-words text-[17px] font-black leading-6">Data aktif 99%</h2>
+              <h2 className="mt-1 break-words text-[17px] font-black leading-6">Data sekolah aktif</h2>
               <p className="mt-1 text-[12px] font-bold text-slate-500">{studentCount} siswa, {teacherCount} guru, dan {subjectCount} mapel siap dikelola.</p>
             </div>
             <div className="role-summary-icon grid h-12 w-12 shrink-0 place-items-center rounded-[17px]">
@@ -182,7 +247,7 @@ export default function AdminApp({ onLogout }) {
           <StatCard icon={FiDatabase} label="Mapel" value={subjectCount} helper="kurikulum" tone="warning" />
         </div>
         <AIInsightCard text={`Rata-rata kuis sekolah berada di ${averageScore}. Pantau kelas dengan risiko belajar tertinggi dari panel guru.`} action="Kirim pengingat" />
-        <ProgressCard title="Aktivasi Akun Kelas X" value={Math.min(99, Math.max(64, Math.round((studentCount / Math.max(studentCount, 1)) * 99)))} target={90} caption="Akun siswa baru yang sudah aktif" />
+        <ProgressCard title="Penyelesaian Materi" value={activationPercent} target={90} caption="Rasio progress completed dari backend" />
         <ChartCard title="Ringkasan Tingkat" subtitle="Distribusi seluruh sekolah">
           <LevelDistributionChart data={levelDistribution} />
         </ChartCard>
@@ -229,11 +294,10 @@ export default function AdminApp({ onLogout }) {
             Tambah Kelas
           </button>
         </section>
-        {(classes.length ? classes : ['X IPA', 'XI IPA', 'XII IPA', 'X IPS']).map((item, index) => {
-          const title = item.name || item;
-          const subtitle = item.student_count !== undefined
-            ? `${item.student_count} siswa - wali ${item.homeroom_teacher_name || 'belum diatur'}`
-            : `${5 + index} rombel - wali kelas aktif`;
+        {classes.length === 0 && <EmptyState title="Belum ada kelas" message="Kelas akan tampil setelah dibuat dari panel admin." />}
+        {classes.map((item) => {
+          const title = item.name;
+          const subtitle = `${item.student_count || 0} siswa - wali ${item.homeroom_teacher_name || 'belum diatur'}`;
 
           return (
           <RoleListCard
@@ -242,7 +306,7 @@ export default function AdminApp({ onLogout }) {
             title={title}
             titleClassName="text-[15px]"
             subtitle={subtitle}
-            trailing={<span className="role-pill rounded-full px-3 py-1 text-[11px] font-black">{item.student_count ?? 5 + index}</span>}
+            trailing={<span className="role-pill rounded-full px-3 py-1 text-[11px] font-black">{item.student_count || 0}</span>}
           />
           );
         })}
@@ -266,14 +330,15 @@ export default function AdminApp({ onLogout }) {
             Tambah Mapel
           </button>
         </section>
-        {(subjects.length ? subjects : ['Matematika', 'Fisika', 'Biologi', 'Bahasa Inggris', 'Kimia']).map((item) => {
-          const title = item.name || item;
+        {subjects.length === 0 && <EmptyState title="Belum ada mapel" message="Mata pelajaran akan tampil setelah dibuat dari panel admin." />}
+        {subjects.map((item) => {
+          const title = item.name;
 
           return (
           <RoleListCard
             key={title}
             title={title}
-            subtitle={item.material_count !== undefined ? `${item.material_count} materi - ${item.quiz_count} kuis` : 'Silabus dan guru pengampu aktif'}
+            subtitle={`${item.material_count || 0} materi - ${item.quiz_count || 0} kuis`}
             leading={
               <span className="role-action-icon grid h-9 w-9 shrink-0 place-items-center rounded-[14px]">
                 <FiBookOpen className="text-[16px]" />
@@ -289,9 +354,9 @@ export default function AdminApp({ onLogout }) {
       <div className="profile-layout-grid">
         <ProfileSummaryCard
           eyebrow="Profil Admin"
-          avatar={user.avatar || 'AS'}
-          name={user.name || 'Admin Sekolah'}
-          subtitle={`Operator EduSense AI - ${user.school || 'SMA Nusantara'}`}
+          avatar={user.avatar}
+          name={user.name || 'Admin'}
+          subtitle={`Operator EduSense AI - ${user.school || 'Sekolah'}`}
           metrics={profileMetrics}
         />
         <ProfileStatusPanel
@@ -299,15 +364,15 @@ export default function AdminApp({ onLogout }) {
           title="Kesehatan sistem"
           description="Status operasional akun, data sekolah, dan sinkronisasi platform."
           items={[
-            { label: 'Sinkronisasi', value: '99% stabil', helper: 'server sekolah', icon: FiDatabase, tone: 'success' },
+            { label: 'Sinkronisasi', value: `${activationPercent}%`, helper: 'progress materi', icon: FiDatabase, tone: 'success' },
             { label: 'Akses Peran', value: '3 role aktif', helper: 'admin, guru, siswa', icon: FiShield, tone: 'royal' },
-            { label: 'Akun Baru', value: '24 minggu ini', helper: '6 menunggu verifikasi', icon: FiUserCheck, tone: 'gold' },
+            { label: 'Akun Terdata', value: `${teacherCount + studentCount}`, helper: 'guru dan siswa', icon: FiUserCheck, tone: 'gold' },
           ]}
         />
-        <StatCard icon={FiBarChart2} label="Data Tersinkron" value="99%" helper="server sekolah" tone="success" />
+        <StatCard icon={FiBarChart2} label="Data Tersinkron" value={`${activationPercent}%`} helper="progress materi" tone="success" />
         <RoleListCard
           title="Sinkronisasi"
-          subtitle="Terakhir hari ini pukul 08.30"
+          subtitle={`${totalProgressRecords} progress record tercatat`}
           leading={
             <span className="role-action-icon grid h-9 w-9 shrink-0 place-items-center rounded-[14px]">
               <FiRefreshCw className="text-[16px]" />

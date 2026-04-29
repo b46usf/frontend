@@ -1,12 +1,16 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-const fallbackData = [
-  { name: 'Dasar', value: 28, color: '#F59E0B' },
-  { name: 'Menengah', value: 46, color: '#155EEF' },
-  { name: 'Lanjutan', value: 26, color: '#22C55E' },
-];
+export default function LevelDistributionChart({ data = [] }) {
+  const hasData = data.some((entry) => Number(entry.value || 0) > 0);
 
-export default function LevelDistributionChart({ data = fallbackData }) {
+  if (!hasData) {
+    return (
+      <div className="grid h-full min-h-40 place-items-center px-4 text-center">
+        <p className="text-[12px] font-bold text-slate-500">Belum ada distribusi level.</p>
+      </div>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>

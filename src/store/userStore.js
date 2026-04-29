@@ -4,9 +4,9 @@ import { getAuthToken, setAuthToken } from '../services/api.js';
 const USER_STORAGE_KEY = 'edusense-auth-user';
 
 const defaultUsers = {
-  student: { name: 'Alya Prameswari', school: 'SMA Nusantara Demo', className: 'XI IPA 2', avatar: 'AP' },
-  teacher: { name: 'Bu Rani Wijaya', school: 'SMA Nusantara Demo', className: 'Matematika', avatar: 'RW' },
-  admin: { name: 'Admin Sekolah', school: 'SMA Nusantara Demo', className: 'Operator', avatar: 'AS' },
+  student: { name: 'Siswa', school: 'Sekolah', className: 'Kelas', avatar: 'S' },
+  teacher: { name: 'Guru', school: 'Sekolah', className: 'Pengajar', avatar: 'G' },
+  admin: { name: 'Admin', school: 'Sekolah', className: 'Operator', avatar: 'A' },
 };
 
 const getInitialTheme = () => {

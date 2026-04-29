@@ -5,16 +5,27 @@ export default function DiagnosticTestCard({ diagnostic, onAnswer, onComplete })
   const [activeIndex, setActiveIndex] = useState(0);
   const answered = Object.keys(diagnostic.answers).length;
   const total = diagnostic.questions.length;
-  const progress = Math.round((answered / total) * 100);
+  const progress = total ? Math.round((answered / total) * 100) : 0;
   const activeQuestion = diagnostic.questions[activeIndex];
-  const selectedAnswer = diagnostic.answers[activeQuestion.id];
-  const options = activeQuestion.options || [];
-  const unanswered = Math.max(total - answered, 0);
   const estimatedLevel = useMemo(() => {
     if (progress >= 80) return 'Advanced';
     if (progress >= 40) return 'Intermediate';
     return 'Basic';
   }, [progress]);
+
+  if (!activeQuestion) {
+    return (
+      <section className="diagnostic-card rounded-[22px] p-6 text-center">
+        <FiCpu className="mx-auto text-3xl text-royal" />
+        <h2 className="mt-3 text-[16px] font-black">Tes diagnostik belum tersedia</h2>
+        <p className="mt-1 text-[12px] font-bold text-slate-500">Soal dari backend akan tampil setelah data diagnostik dibuat.</p>
+      </section>
+    );
+  }
+
+  const selectedAnswer = diagnostic.answers[activeQuestion.id];
+  const options = activeQuestion.options || [];
+  const unanswered = Math.max(total - answered, 0);
 
   const goToNext = () => setActiveIndex((index) => Math.min(total - 1, index + 1));
   const goToPrevious = () => setActiveIndex((index) => Math.max(0, index - 1));

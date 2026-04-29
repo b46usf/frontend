@@ -1,32 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiAlertTriangle, FiCheckCircle, FiMessageSquare } from 'react-icons/fi';
-
-const fallbackStudents = [
-  {
-    name: 'Alya Prameswari',
-    score: 84,
-    risk: 'Aman',
-    tone: 'safe',
-    reason: 'Akurasi stabil dan engagement tinggi.',
-    intervention: 'Berikan challenge lanjutan agar momentum tetap naik.',
-  },
-  {
-    name: 'Raka Putra',
-    score: 61,
-    risk: 'Perlu Dipantau',
-    tone: 'watch',
-    reason: 'Skor turun 2 sesi dan waktu pengerjaan makin lama.',
-    intervention: 'Kirim latihan penguatan fungsi linear dan cek pemahaman gradien.',
-  },
-  {
-    name: 'Nadia Zahra',
-    score: 47,
-    risk: 'Perlu Intervensi',
-    tone: 'danger',
-    reason: 'Essay rendah, confidence AI 68%, dan 3 tugas terlambat.',
-    intervention: 'Jadwalkan remedial 15 menit, beri materi dasar, lalu ulangi kuis adaptif.',
-  },
-];
 
 const riskMeta = {
   safe: { label: 'Hijau', icon: FiCheckCircle },
@@ -34,9 +7,33 @@ const riskMeta = {
   danger: { label: 'Merah', icon: FiAlertTriangle },
 };
 
-export default function RiskStudentPanel({ students = fallbackStudents, onSendIntervention }) {
-  const displayStudents = students.length ? students : fallbackStudents;
-  const [selectedName, setSelectedName] = useState(displayStudents[1]?.name || displayStudents[0].name);
+export default function RiskStudentPanel({ students = [], onSendIntervention }) {
+  const displayStudents = students;
+  const [selectedName, setSelectedName] = useState('');
+
+  useEffect(() => {
+    if (!selectedName && displayStudents[0]?.name) {
+      setSelectedName(displayStudents[0].name);
+    }
+  }, [displayStudents, selectedName]);
+
+  if (!displayStudents.length) {
+    return (
+      <section className="risk-panel rounded-[20px] p-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Risk Student Detection</p>
+            <h3 className="mt-1 break-words text-[15px] font-black leading-5">Prioritas intervensi AI</h3>
+          </div>
+          <span className="risk-count rounded-full px-2.5 py-1 text-[10px] font-black leading-3">0 siswa</span>
+        </div>
+        <div className="mt-3 rounded-[16px] p-3 text-center text-[12px] font-bold text-slate-500">
+          Belum ada siswa prioritas dari backend.
+        </div>
+      </section>
+    );
+  }
+
   const selected = displayStudents.find((student) => student.name === selectedName) || displayStudents[0];
   const SelectedIcon = riskMeta[selected.tone]?.icon || FiAlertTriangle;
 

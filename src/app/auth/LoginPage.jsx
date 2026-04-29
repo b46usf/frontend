@@ -16,7 +16,7 @@ import {
   FiUsers,
   FiZap,
 } from 'react-icons/fi';
-import { authenticate, demoAccounts, registerAccount } from '../../services/authService.js';
+import { authenticate, registerAccount } from '../../services/authService.js';
 import { useUserStore } from '../../store/userStore.js';
 import { showToast } from '../../utils/alerts.js';
 
@@ -38,22 +38,26 @@ export default function LoginPage() {
   const setSession = useUserStore((state) => state.setSession);
   const [mode, setMode] = useState('login');
   const [role, setRole] = useState('student');
-  const [name, setName] = useState('Akun Demo Baru');
-  const [email, setEmail] = useState(demoAccounts.student.email);
-  const [password, setPassword] = useState(demoAccounts.student.password);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const visibleRoles = mode === 'register' ? roles.filter((item) => item.id !== 'admin') : roles;
   const selectedRole = roles.find((item) => item.id === role) || roles[0];
 
   useEffect(() => {
-    if (mode === 'login') {
-      setEmail(demoAccounts[role]?.email || demoAccounts.student.email);
-      setPassword(demoAccounts[role]?.password || demoAccounts.student.password);
+    if (mode === 'register' && role === 'admin') {
+      setRole('student');
       return;
     }
 
-    setName(role === 'teacher' ? 'Guru Demo Baru' : role === 'admin' ? 'Admin Demo Baru' : 'Siswa Demo Baru');
-    setEmail(`new-${role}-${Date.now()}@edusense.ai`);
-    setPassword('demo12345');
+    if (mode === 'login') {
+      return;
+    }
+
+    setName('');
+    setEmail('');
+    setPassword('');
   }, [mode, role]);
 
   const handleSubmit = async (event) => {
@@ -199,7 +203,7 @@ export default function LoginPage() {
                   {mode === 'login' ? 'Akses beranda' : 'Buat akun baru'}
                 </h2>
               </div>
-              <span className="rounded-full bg-gold/18 px-3 py-1 text-[11px] font-black text-gold">Demo</span>
+              <span className="rounded-full bg-gold/18 px-3 py-1 text-[11px] font-black text-gold">Backend</span>
             </div>
             <p className="auth-panel-copy mt-1 text-xs font-semibold leading-5">
               Pilih peran, lalu masuk menggunakan akun sekolah.
@@ -234,8 +238,8 @@ export default function LoginPage() {
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {roles.map((item) => {
+              <div className={`mt-3 grid gap-2 ${visibleRoles.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {visibleRoles.map((item) => {
                   const Icon = item.icon;
                   const active = role === item.id;
 
@@ -304,7 +308,7 @@ export default function LoginPage() {
               <FiArrowRight />
             </button>
             <p className="auth-footnote mt-3 text-center text-[11px] font-bold">
-              Data demo siap digunakan untuk semua peran.
+              Gunakan akun sekolah yang sudah terdaftar.
             </p>
           </form>
         </div>

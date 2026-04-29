@@ -77,7 +77,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (payload?.encrypted) {
-    throw new Error('Backend masih mengirim data terenkripsi. Aktifkan header dev atau matikan enkripsi respons untuk demo.');
+    throw new Error('Backend mengirim data terenkripsi, tetapi frontend belum memiliki decryptor respons.');
   }
 
   return payload?.data ?? null;
@@ -139,8 +139,9 @@ export const api = {
       apiRequest('/students'),
       apiRequest('/assessments/attempts'),
       apiRequest('/materials').then((items) => items.map(normalizeMaterial)),
-    ]).then(([classes, riskStudents, recommendations, analytics, students, attempts, materials]) => ({
-      classes,
+    ]).then(([classDashboard, riskStudents, recommendations, analytics, students, attempts, materials]) => ({
+      classes: classDashboard?.classes || [],
+      interventionQueue: classDashboard?.intervention_queue || [],
       riskStudents,
       recommendations,
       analytics,

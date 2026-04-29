@@ -1,26 +1,7 @@
 import { FiActivity, FiClock, FiRepeat, FiTarget, FiTrendingUp, FiZap } from 'react-icons/fi';
 
-const defaultMetrics = {
-  student: [
-    { label: 'Rata-rata', value: '84', helper: '6 sesi', icon: FiTrendingUp, tone: 'royal' },
-    { label: 'Akurasi', value: '86%', helper: 'stabil', icon: FiTarget, tone: 'success' },
-    { label: 'Waktu', value: '09m', helper: 'per kuis', icon: FiClock, tone: 'gold' },
-    { label: 'Percobaan', value: '12', helper: 'bulan ini', icon: FiRepeat, tone: 'royal' },
-    { label: 'Konsisten', value: '78%', helper: '4 hari aktif', icon: FiActivity, tone: 'success' },
-    { label: 'Engage', value: '82%', helper: 'tinggi', icon: FiZap, tone: 'gold' },
-  ],
-  teacher: [
-    { label: 'Rata-rata', value: '82', helper: 'kelas XI', icon: FiTrendingUp, tone: 'royal' },
-    { label: 'Akurasi', value: '79%', helper: 'kuis terbaru', icon: FiTarget, tone: 'success' },
-    { label: 'Waktu', value: '11m', helper: 'median', icon: FiClock, tone: 'gold' },
-    { label: 'Percobaan', value: '342', helper: 'minggu ini', icon: FiRepeat, tone: 'royal' },
-    { label: 'Konsisten', value: '71%', helper: 'kelas aktif', icon: FiActivity, tone: 'success' },
-    { label: 'Engage', value: '76%', helper: '4 hari aktif', icon: FiZap, tone: 'gold' },
-  ],
-};
-
 export default function PerformanceTrendPanel({ role = 'student', title = 'Performance Trend', metrics: providedMetrics }) {
-  const metrics = providedMetrics || defaultMetrics[role] || defaultMetrics.student;
+  const metrics = providedMetrics || [];
 
   return (
     <section className="trend-panel rounded-[20px] p-3.5">
@@ -29,9 +10,14 @@ export default function PerformanceTrendPanel({ role = 'student', title = 'Perfo
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Dashboard Tren</p>
           <h3 className="mt-1 break-words text-[15px] font-black leading-5">{title}</h3>
         </div>
-        <span className="trend-badge rounded-full px-2.5 py-1 text-[10px] font-black leading-3">6 metrik</span>
+        <span className="trend-badge rounded-full px-2.5 py-1 text-[10px] font-black leading-3">{metrics.length} metrik</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
+        {metrics.length === 0 && (
+          <div className="col-span-2 rounded-[15px] p-3 text-center text-[12px] font-bold text-slate-500">
+            Belum ada metrik performa.
+          </div>
+        )}
         {metrics.map((metric) => {
           const Icon = metric.icon;
 
