@@ -8,6 +8,7 @@ import {
   normalizeQuizList,
   normalizeRiskStudent,
 } from './adapters.js';
+import { decryptResponseField } from '../utils/crypto.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -53,7 +54,6 @@ export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, token = getAuthToken(), headers = {} } = options;
   const requestHeaders = {
     Accept: 'application/json',
-    'X-EduSense-Plain-Response': 'true',
     ...headers,
   };
 
@@ -77,7 +77,15 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (payload?.encrypted) {
-    throw new Error('Backend mengirim data terenkripsi, tetapi frontend belum memiliki decryptor respons.');
+    try {
+      payload.data = await decryptResponseField(payload.data);
+
+      if (payload.meta !== undefined) {
+        payload.meta = await decryptResponseField(payload.meta);
+      }
+    } catch (error) {
+      throw new Error('Gagal membuka respons terenkripsi dari backend.');
+    }
   }
 
   return payload?.data ?? null;

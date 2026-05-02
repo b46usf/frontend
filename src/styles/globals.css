@@ -150,6 +150,28 @@ textarea {
   position: sticky;
   top: calc(0.6rem + env(safe-area-inset-top));
   z-index: 40;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.top-header-sticky::before {
+  position: absolute;
+  z-index: -2;
+  inset: calc(-0.75rem - env(safe-area-inset-top)) -0.5rem -0.9rem;
+  border-radius: 1.45rem;
+  background:
+    linear-gradient(180deg, var(--screen-bg) 0%, color-mix(in srgb, var(--screen-bg) 94%, transparent) 62%, transparent 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.top-header-sticky.glass-dark {
+  background:
+    linear-gradient(145deg, rgba(12, 48, 104, 0.98), rgba(21, 94, 239, 0.94));
+  box-shadow:
+    0 18px 44px rgba(2, 6, 23, 0.34),
+    inset 0 1px 0 rgba(248, 250, 252, 0.14);
+  backdrop-filter: blur(20px) saturate(1.15);
 }
 
 .theme-card {
@@ -332,6 +354,11 @@ textarea {
     top: 1rem;
   }
 
+  .top-header-sticky::before {
+    inset: -1rem -1rem -1.05rem;
+    border-radius: 1.65rem;
+  }
+
   .app-ambient {
     height: 16rem;
     border-radius: 1.75rem 1.75rem 0 0;
@@ -440,6 +467,10 @@ textarea {
 
   .top-header-sticky {
     top: 1.2rem;
+  }
+
+  .top-header-sticky::before {
+    inset: -1.2rem -1.2rem -1.1rem;
   }
 
   .desktop-nav {
@@ -1587,12 +1618,6 @@ textarea {
   display: none;
 }
 
-.auth-shell-card {
-  border: 1px solid rgba(248, 250, 252, 0.12);
-  background: rgba(248, 250, 252, 0.06);
-  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.08);
-}
-
 .auth-panel {
   border: 1px solid var(--auth-panel-border);
   background:
@@ -1872,7 +1897,7 @@ textarea {
   line-height: 1rem;
 }
 
-.auth-path-panel div > span {
+.auth-path-score {
   color: var(--gold);
   font-size: 0.95rem;
   font-weight: 950;
@@ -1897,21 +1922,35 @@ textarea {
 
 .auth-path-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.32rem;
   margin-top: 0.55rem;
 }
 
 .auth-path-steps span {
-  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: normal;
+  word-break: keep-all;
   border-radius: 0.75rem;
-  padding: 0.28rem 0.18rem;
+  min-height: 2.85rem;
+  padding: 0.34rem 0.12rem;
   background: rgba(248, 250, 252, 0.08);
   color: rgba(248, 250, 252, 0.58);
   text-align: center;
-  font-size: 0.5rem;
+  font-size: 0.58rem;
   font-weight: 900;
-  line-height: 0.62rem;
+  line-height: 0.72rem;
+}
+
+.auth-path-steps svg {
+  flex: 0 0 auto;
+  font-size: 0.84rem;
 }
 
 .auth-path-steps span.is-active {
@@ -2041,27 +2080,6 @@ textarea {
 
   .auth-preview-body {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .auth-feature-grid {
-    width: 100%;
-    max-width: none;
-  }
-
-  .auth-hero-block .auth-shell-card {
-    border-radius: 1rem;
-    padding: 0.7rem 0.6rem;
-    background: rgba(248, 250, 252, 0.075);
-  }
-
-  .auth-hero-block .auth-shell-card svg {
-    font-size: 0.95rem;
-  }
-
-  .auth-hero-block .auth-shell-card p {
-    margin-top: 0.42rem;
-    font-size: 0.66rem;
-    line-height: 0.85rem;
   }
 
   .auth-panel {

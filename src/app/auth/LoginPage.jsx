@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fi';
 import { authenticate, registerAccount } from '../../services/authService.js';
 import { useUserStore } from '../../store/userStore.js';
-import { showToast } from '../../utils/alerts.js';
+import { showInfoDialog, showToast } from '../../utils/alerts.js';
 
 const roles = [
   { id: 'student', label: 'Siswa', helper: 'Belajar adaptif, kuis AI, dan progres pribadi.', caption: 'Belajar', badge: 'Kuis AI', icon: FiBookOpen, tone: 'student' },
@@ -27,12 +27,16 @@ const roles = [
 ];
 
 const previewStats = [
-  { label: 'Akurasi', value: '86%', icon: FiTarget, tone: 'royal' },
-  { label: 'Aktif', value: '128', icon: FiUsers, tone: 'success' },
-  { label: 'AI Score', value: '91', icon: FiCpu, tone: 'gold' },
+  { label: 'Siswa', value: '36', icon: FiUsers, tone: 'royal' },
+  { label: 'Guru', value: '71', icon: FiUserCheck, tone: 'success' },
+  { label: 'Mapel', value: '24', icon: FiCpu, tone: 'gold' },
 ];
 
-const learningSteps = ['Diagnostik', 'Materi', 'Kuis', 'Feedback'];
+const learningSteps = [
+  { label: 'Adaptif', icon: FiTrendingUp },
+  { label: 'Analitik', icon: FiActivity },
+  { label: 'Multi Peran', icon: FiUsers },
+];
 
 export default function LoginPage() {
   const setSession = useUserStore((state) => state.setSession);
@@ -69,16 +73,23 @@ export default function LoginPage() {
         ? await authenticate({ email, password, role })
         : await registerAccount({ name, email, password, role });
 
-      if (response.ok && response.token) {
+      if (mode === 'login' && response.ok && response.token) {
         setSession({ token: response.token, user: response.user });
-        showToast({ title: `${mode === 'login' ? 'Masuk' : 'Pendaftaran'} berhasil` });
+        showToast({ title: 'Masuk berhasil' });
         return;
       }
 
-      showToast({
-        icon: 'info',
-        title: 'Pendaftaran berhasil, menunggu verifikasi admin',
+      if (mode === 'login') {
+        throw new Error('Login belum berhasil. Silakan coba lagi.');
+      }
+
+      await showInfoDialog({
+        title: 'tunggu admin konfirmasi',
+        text: 'admin konfirmasi dalam 24jam',
+        confirmButtonText: 'Mengerti',
       });
+      setMode('login');
+      setPassword('');
     } catch (error) {
       showToast({
         icon: 'error',
@@ -98,7 +109,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <p className="auth-eyebrow text-[12px] font-black uppercase tracking-[0.24em]">EduSense AI</p>
                 <span className="auth-device-pill rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
-                  Responsive
+                  AI Aktif
                 </span>
               </div>
               <h1 className="mt-4 max-w-[19rem] text-[30px] font-black leading-[1.08] tracking-normal text-white sm:text-4xl">
@@ -113,13 +124,13 @@ export default function LoginPage() {
               <div className="auth-preview-card">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="auth-preview-kicker">Live Dashboard</p>
-                    <h2 className="auth-preview-title">Learning cockpit</h2>
+                    <p className="auth-preview-kicker">Dasbor Belajar</p>
+                    <h2 className="auth-preview-title">Ruang belajar</h2>
                     <p className="auth-preview-copy">Mode aktif: {selectedRole.label} - {selectedRole.badge}</p>
                   </div>
                   <span className="auth-preview-status">
                     <FiCheckCircle />
-                    Online
+                    Aktif
                   </span>
                 </div>
 
@@ -143,20 +154,25 @@ export default function LoginPage() {
                   <div className="auth-path-panel">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p>Adaptive Path</p>
-                        <h3>Fungsi Linear</h3>
+                        <p>Jalur Adaptif</p>
+                        <h3>XI-C1 2025/2026</h3>
                       </div>
-                      <span>74%</span>
+                      <span className="auth-path-score">74%</span>
                     </div>
                     <div className="auth-path-track">
                       <span />
                     </div>
                     <div className="auth-path-steps">
-                      {learningSteps.map((step, index) => (
-                        <span key={step} className={index < 3 ? 'is-active' : ''}>
-                          {step}
-                        </span>
-                      ))}
+                      {learningSteps.map((step) => {
+                        const Icon = step.icon;
+
+                        return (
+                          <span key={step.label} className="is-active">
+                            <Icon aria-hidden="true" />
+                            {step.label}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -166,7 +182,7 @@ export default function LoginPage() {
                     </span>
                     <div className="min-w-0">
                       <p>AI menemukan topik prioritas berikutnya.</p>
-                      <strong>Latihan gradien 15 menit</strong>
+                      <strong>Materi kelas XI-C1 siap dipantau</strong>
                     </div>
                   </div>
                 </div>
@@ -177,19 +193,6 @@ export default function LoginPage() {
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="auth-feature-grid grid grid-cols-3 gap-2">
-              {[
-                [FiTrendingUp, 'Adaptif'],
-                [FiActivity, 'Analitik'],
-                [FiUsers, 'Multi Peran'],
-              ].map(([Icon, label]) => (
-                <div key={label} className="auth-shell-card rounded-[18px] px-2 py-3 text-center backdrop-blur">
-                  <Icon className="mx-auto text-lg text-gold" />
-                  <p className="mt-2 text-[11px] font-black text-slate-100">{label}</p>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -203,7 +206,7 @@ export default function LoginPage() {
                   {mode === 'login' ? 'Akses beranda' : 'Buat akun baru'}
                 </h2>
               </div>
-              <span className="rounded-full bg-gold/18 px-3 py-1 text-[11px] font-black text-gold">Backend</span>
+              <span className="rounded-full bg-gold/18 px-3 py-1 text-[11px] font-black text-gold">Aman</span>
             </div>
             <p className="auth-panel-copy mt-1 text-xs font-semibold leading-5">
               Pilih peran, lalu masuk menggunakan akun sekolah.

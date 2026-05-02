@@ -52,6 +52,7 @@ export default function AdminApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [className, setClassName] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
+  const [homeroomTeacherId, setHomeroomTeacherId] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -75,9 +76,20 @@ export default function AdminApp({ onLogout }) {
     ? Math.round((completedMaterials / totalProgressRecords) * 100)
     : 0;
   const levelDistribution = useMemo(() => normalizeLevelDistribution(students), [students]);
+  const pendingAccounts = useMemo(
+    () => [
+      ...teachers
+        .filter((teacher) => teacher.status === 'inactive')
+        .map((teacher) => ({ ...teacher, roleLabel: 'Guru' })),
+      ...students
+        .filter((student) => student.status === 'inactive')
+        .map((student) => ({ ...student, roleLabel: 'Siswa' })),
+    ],
+    [students, teachers],
+  );
   const accountActions = [
     { title: 'Impor Akun Siswa', helper: 'Input akun baru', icon: FiUploadCloud },
-    { title: 'Verifikasi Guru', helper: `${teachers.filter((teacher) => teacher.status === 'inactive').length} menunggu`, icon: FiUserCheck },
+    { title: 'Verifikasi Akun', helper: `${pendingAccounts.length} menunggu`, icon: FiUserCheck },
     { title: 'Atur Ulang Sandi', helper: students.length ? 'Siswa pertama di daftar' : 'Belum ada siswa', icon: FiKey },
     { title: 'Kelola Peran', helper: `${teacherCount + studentCount} akun terdata`, icon: FiShield },
   ];
@@ -86,6 +98,10 @@ export default function AdminApp({ onLogout }) {
     { label: 'Guru', value: teacherCount, helper: 'terverifikasi', icon: FiUserCheck, tone: 'success' },
     { label: 'Kelas', value: classCount, helper: 'tahun ajaran', icon: FiBriefcase, tone: 'gold' },
   ];
+  const homeroomTeacherOptions = teachers.map((teacher) => ({
+    id: teacher.id,
+    label: `${teacher.name}${teacher.specialization ? ` - ${teacher.specialization}` : ''}`,
+  }));
 
   const refreshDashboard = async () => {
     const nextDashboard = await api.getAdminDashboard();
@@ -93,17 +109,27 @@ export default function AdminApp({ onLogout }) {
   };
 
   const createClass = async () => {
+    const nextName = className.trim();
+    const nextGradeLevel = gradeLevel.trim();
+
+    if (!nextName || !nextGradeLevel) {
+      showToast({ icon: 'warning', title: 'Lengkapi nama kelas dan tingkat' });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
       await api.createClass({
-        name: className,
-        gradeLevel,
+        name: nextName,
+        gradeLevel: nextGradeLevel,
         academicYear: getCurrentAcademicYear(),
+        homeroomTeacherId: homeroomTeacherId ? Number(homeroomTeacherId) : undefined,
       });
       await refreshDashboard();
       setClassName('');
       setGradeLevel('');
+      setHomeroomTeacherId('');
       showToast({ title: 'Kelas berhasil dibuat' });
     } catch (error) {
       showToast({ icon: 'error', title: error.message || 'Gagal membuat kelas' });
@@ -113,12 +139,20 @@ export default function AdminApp({ onLogout }) {
   };
 
   const createSubject = async () => {
+    const nextName = subjectName.trim();
+    const nextCode = subjectCode.trim();
+
+    if (!nextName || !nextCode) {
+      showToast({ icon: 'warning', title: 'Lengkapi nama dan kode mapel' });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
       await api.createSubject({
-        name: subjectName,
-        code: `${subjectCode}-${Date.now().toString().slice(-4)}`,
+        name: nextName,
+        code: nextCode,
         description: `Dibuat dari panel admin.`,
       });
       await refreshDashboard();
@@ -146,6 +180,7 @@ export default function AdminApp({ onLogout }) {
       html: `
         <div class="grid gap-2 text-left">
           <input id="import-name" class="swal2-input" placeholder="Nama siswa" />
+          <input id="import-student-number" class="swal2-input" placeholder="NIS siswa" />
           <input id="import-email" class="swal2-input" type="email" placeholder="Email siswa" />
           <input id="import-password" class="swal2-input" type="password" placeholder="Password sementara" />
           <select id="import-class" class="swal2-select">${classOptions}</select>
@@ -154,15 +189,16 @@ export default function AdminApp({ onLogout }) {
       confirmButtonText: 'Impor',
       preConfirm: () => {
         const name = document.getElementById('import-name')?.value?.trim();
+        const studentNumber = document.getElementById('import-student-number')?.value?.trim();
         const email = document.getElementById('import-email')?.value?.trim();
         const password = document.getElementById('import-password')?.value || '';
         const classId = Number(document.getElementById('import-class')?.value);
 
-        if (!name || !email || password.length < 8 || !classId) {
+        if (!name || !studentNumber || !email || password.length < 8 || !classId) {
           return null;
         }
 
-        return { name, email, password, classId };
+        return { name, studentNumber, email, password, classId };
       },
     });
 
@@ -171,7 +207,7 @@ export default function AdminApp({ onLogout }) {
     }
 
     if (!result.value) {
-      showToast({ icon: 'warning', title: 'Lengkapi nama, email, kelas, dan password minimal 8 karakter' });
+      showToast({ icon: 'warning', title: 'Lengkapi nama, NIS, email, kelas, dan password minimal 8 karakter' });
       return;
     }
 
@@ -201,26 +237,26 @@ export default function AdminApp({ onLogout }) {
     }
   };
 
-  const verifyFirstTeacher = async () => {
-    const target = teachers[0];
+  const verifyFirstPendingAccount = async () => {
+    const target = pendingAccounts[0];
 
     if (!target?.user_id) {
-      showToast({ icon: 'warning', title: 'Belum ada guru untuk diverifikasi' });
+      showToast({ icon: 'warning', title: 'Belum ada akun menunggu konfirmasi' });
       return;
     }
 
     try {
       await api.verifyUser(target.user_id);
       await refreshDashboard();
-      showToast({ title: `${target.name} sudah aktif` });
+      showToast({ title: `${target.roleLabel} ${target.name} sudah aktif` });
     } catch (error) {
-      showToast({ icon: 'error', title: error.message || 'Gagal verifikasi guru' });
+      showToast({ icon: 'error', title: error.message || 'Gagal verifikasi akun' });
     }
   };
 
   const accountActionsWithHandlers = accountActions.map((action) => {
     if (action.title === 'Impor Akun Siswa') return { ...action, onClick: importStudent };
-    if (action.title === 'Verifikasi Guru') return { ...action, onClick: verifyFirstTeacher };
+    if (action.title === 'Verifikasi Akun') return { ...action, onClick: verifyFirstPendingAccount };
     if (action.title === 'Atur Ulang Sandi') return { ...action, onClick: resetFirstStudentPassword };
     return { ...action, onClick: () => showToast({ icon: 'info', title: `${action.title} memakai role aktif dari backend` }) };
   });
@@ -266,6 +302,7 @@ export default function AdminApp({ onLogout }) {
         {[
           ['Akun siswa aktif', studentCount],
           ['Guru terverifikasi', teacherCount],
+          ['Menunggu konfirmasi', pendingAccounts.length],
           ['Top leaderboard', leaderboard[0]?.name || '-'],
         ].map(([item, value]) => (
           <RoleListCard
@@ -289,6 +326,12 @@ export default function AdminApp({ onLogout }) {
           <div className="grid grid-cols-2 gap-2">
             <input className="rounded-[14px] px-3 py-2 text-[12px] font-bold outline-none" value={className} onChange={(event) => setClassName(event.target.value)} placeholder="Nama kelas" />
             <input className="rounded-[14px] px-3 py-2 text-[12px] font-bold outline-none" value={gradeLevel} onChange={(event) => setGradeLevel(event.target.value)} placeholder="Tingkat" />
+            <select className="col-span-2 rounded-[14px] px-3 py-2 text-[12px] font-bold outline-none" value={homeroomTeacherId} onChange={(event) => setHomeroomTeacherId(event.target.value)}>
+              <option value="">Wali kelas belum diatur</option>
+              {homeroomTeacherOptions.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>{teacher.label}</option>
+              ))}
+            </select>
           </div>
           <button type="button" disabled={isSaving} onClick={createClass} className="mt-2 flex h-10 w-full items-center justify-center rounded-[14px] bg-gold px-3 text-[12px] font-black text-navy disabled:opacity-60">
             Tambah Kelas
@@ -324,7 +367,7 @@ export default function AdminApp({ onLogout }) {
         <section className="role-section-card rounded-[18px] p-3">
           <div className="grid grid-cols-2 gap-2">
             <input className="rounded-[14px] px-3 py-2 text-[12px] font-bold outline-none" value={subjectName} onChange={(event) => setSubjectName(event.target.value)} placeholder="Nama mapel" />
-            <input className="rounded-[14px] px-3 py-2 text-[12px] font-bold uppercase outline-none" value={subjectCode} onChange={(event) => setSubjectCode(event.target.value.toUpperCase())} placeholder="Kode" />
+            <input className="rounded-[14px] px-3 py-2 text-[12px] font-bold outline-none" value={subjectCode} onChange={(event) => setSubjectCode(event.target.value)} placeholder="Kode" />
           </div>
           <button type="button" disabled={isSaving} onClick={createSubject} className="mt-2 flex h-10 w-full items-center justify-center rounded-[14px] bg-gold px-3 text-[12px] font-black text-navy disabled:opacity-60">
             Tambah Mapel
@@ -336,7 +379,7 @@ export default function AdminApp({ onLogout }) {
 
           return (
           <RoleListCard
-            key={title}
+            key={item.id || title}
             title={title}
             subtitle={`${item.material_count || 0} materi - ${item.quiz_count || 0} kuis`}
             leading={

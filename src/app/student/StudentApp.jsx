@@ -35,11 +35,18 @@ const navItems = [
 ];
 
 const subjectMeta = {
-  Matematika: { icon: FiTarget, progress: 68, lessons: 12, tag: 'Logika' },
-  Fisika: { icon: FiZap, progress: 54, lessons: 9, tag: 'Eksperimen' },
-  Biologi: { icon: FiActivity, progress: 42, lessons: 8, tag: 'Konsep' },
-  'Bahasa Inggris': { icon: FiGlobe, progress: 76, lessons: 14, tag: 'Bahasa' },
+  MATEMATIKA: { icon: FiTarget, tag: 'Logika' },
+  FISIKA: { icon: FiZap, tag: 'Eksperimen' },
+  BIOLOGI: { icon: FiActivity, tag: 'Konsep' },
+  'BAHASA INGGRIS': { icon: FiGlobe, tag: 'Bahasa' },
+  'BAHASA INDONESIA': { icon: FiBookOpen, tag: 'Literasi' },
+  KIMIA: { icon: FiActivity, tag: 'Praktikum' },
+  SEJARAH: { icon: FiClock, tag: 'Konteks' },
+  INFORMATIKA: { icon: FiZap, tag: 'Teknologi' },
+  DEFAULT: { icon: FiBookOpen, tag: 'Mapel' },
 };
+
+const getSubjectMeta = (subject) => subjectMeta[String(subject || '').trim().toUpperCase()] || subjectMeta.DEFAULT;
 
 export default function StudentApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('home');
@@ -298,7 +305,7 @@ export default function StudentApp({ onLogout }) {
         {displaySubjects.length === 0 && <EmptyState title="Belum ada mapel" message="Materi backend akan tampil di sini setelah tersedia." />}
         <div className="grid grid-cols-2 gap-2.5">
           {displaySubjects.map((subject) => {
-            const meta = subjectMeta[subject] || subjectMeta.Matematika;
+            const meta = getSubjectMeta(subject);
             const materialCount = backendMaterials.filter((material) => material.subjectName === subject).length;
             const progressPercent = subjectProgressMap[subject] || 0;
             const Icon = meta.icon;

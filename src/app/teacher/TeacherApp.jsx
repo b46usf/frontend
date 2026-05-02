@@ -46,6 +46,8 @@ export default function TeacherApp({ onLogout }) {
   const riskCount = riskStudents.filter((student) => student.tone !== 'safe').length;
   const activityCount = attempts.length;
   const classEngagement = Math.round(Number(analytics.average_progress_percent || 0));
+  const primaryClassName = classes[0]?.class_name || classes[0]?.name || user.className || 'kelas aktif';
+  const teacherSubjectLabel = user.specialization || user.className || 'Pengajar';
   const averageAccuracy = attempts.length
     ? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.accuracy_rate || 0), 0) / attempts.length)
     : 0;
@@ -169,7 +171,7 @@ export default function TeacherApp({ onLogout }) {
             </div>
           }
         />
-        <ProgressCard title="Keterlibatan Kelas XI" value={classEngagement} target={85} caption="Aktif minimal 4 hari minggu ini" />
+        <ProgressCard title={`Keterlibatan ${primaryClassName}`} value={classEngagement} target={85} caption="Aktif minimal 4 hari minggu ini" />
         <RiskStudentPanel students={riskStudents} onSendIntervention={sendIntervention} />
         <ChartCard title="Aktivitas Terbaru" subtitle="Nilai penilaian otomatis">
           <PerformanceLineChart data={performanceData.length ? performanceData : undefined} />
@@ -262,7 +264,7 @@ export default function TeacherApp({ onLogout }) {
           eyebrow="Profil Guru"
           avatar={user.avatar}
           name={user.name || 'Guru'}
-          subtitle={`${user.className || 'Pengajar'} - ${user.school || 'Sekolah'}`}
+          subtitle={`${teacherSubjectLabel} - ${user.school || 'Sekolah'}`}
           metrics={profileMetrics}
         />
         <ProfileStatusPanel

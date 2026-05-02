@@ -50,3 +50,23 @@ export function showConfirmDialog(options) {
     ...options,
   });
 }
+
+export function showInfoDialog(options) {
+  return Swal.fire({
+    icon: 'info',
+    confirmButtonColor: '#155EEF',
+    confirmButtonText: 'OK',
+    background: themeColors().background,
+    color: themeColors().color,
+    buttonsStyling: false,
+    customClass: {
+      popup: 'edusense-modal',
+      icon: 'edusense-modal-icon',
+      title: 'edusense-modal-title',
+      htmlContainer: 'edusense-modal-text',
+      confirmButton: 'edusense-confirm',
+      actions: 'edusense-actions',
+    },
+    ...options,
+  });
+}
