@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FiBarChart2, FiBookOpen, FiBriefcase, FiCheckCircle, FiDatabase, FiHome, FiKey, FiRefreshCw, FiSettings, FiShield, FiUploadCloud, FiUser, FiUserCheck, FiUsers } from 'react-icons/fi';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
@@ -12,6 +12,9 @@ import ProfileStatusPanel from '../../components/cards/ProfileStatusPanel.jsx';
 import { RoleActionGrid, RoleListCard, RoleSectionCard } from '../../components/cards/RoleCards.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
 import EmptyState from '../../components/ai/EmptyState.jsx';
+import InfiniteScrollSentinel from '../../components/loading/InfiniteScrollSentinel.jsx';
+import LazyLoadSkeleton from '../../components/loading/LazyLoadSkeleton.jsx';
+import { useInfiniteCollection } from '../../hooks/useInfiniteCollection.js';
 import { useUserStore } from '../../store/userStore.js';
 import { api } from '../../services/api.js';
 import { normalizeLevelDistribution } from '../../services/adapters.js';
@@ -24,6 +27,9 @@ const navItems = [
   { id: 'subjects', label: 'Mapel', icon: FiBookOpen },
   { id: 'profile', label: 'Profil', icon: FiUser },
 ];
+
+const ADMIN_PAGE_SIZE = 8;
+const ADMIN_STUDENT_PAGE_SIZE = 10;
 
 const getCurrentAcademicYear = () => {
   const now = new Date();
@@ -59,10 +65,54 @@ export default function AdminApp({ onLogout }) {
   const dashboardBundle = useUserStore((state) => state.dashboards.admin);
   const user = useUserStore((state) => state.user);
   const setDashboard = useUserStore((state) => state.setDashboard);
-  const classes = dashboardBundle?.classes || [];
-  const subjects = dashboardBundle?.subjects || [];
-  const teachers = dashboardBundle?.teachers || [];
-  const students = dashboardBundle?.students || [];
+  const dashboardClasses = dashboardBundle?.classes || [];
+  const dashboardSubjects = dashboardBundle?.subjects || [];
+  const dashboardTeachers = dashboardBundle?.teachers || [];
+  const dashboardStudents = dashboardBundle?.students || [];
+  const fetchClassPage = useCallback(
+    ({ page, limit }) => api.listClasses({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const fetchSubjectPage = useCallback(
+    ({ page, limit }) => api.listSubjects({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const fetchTeacherPage = useCallback(
+    ({ page, limit }) => api.listTeachers({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const fetchStudentPage = useCallback(
+    ({ page, limit }) => api.listStudents({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const classCollection = useInfiniteCollection({
+    fetchPage: fetchClassPage,
+    initialItems: dashboardClasses,
+    pageSize: ADMIN_PAGE_SIZE,
+    resetKey: 'admin-classes',
+  });
+  const subjectCollection = useInfiniteCollection({
+    fetchPage: fetchSubjectPage,
+    initialItems: dashboardSubjects,
+    pageSize: ADMIN_PAGE_SIZE,
+    resetKey: 'admin-subjects',
+  });
+  const teacherCollection = useInfiniteCollection({
+    fetchPage: fetchTeacherPage,
+    initialItems: dashboardTeachers,
+    pageSize: ADMIN_PAGE_SIZE,
+    resetKey: 'admin-teachers',
+  });
+  const studentCollection = useInfiniteCollection({
+    fetchPage: fetchStudentPage,
+    initialItems: dashboardStudents,
+    pageSize: ADMIN_STUDENT_PAGE_SIZE,
+    resetKey: 'admin-students',
+  });
+  const classes = classCollection.items;
+  const subjects = subjectCollection.items;
+  const teachers = teacherCollection.items;
+  const students = studentCollection.items;
   const analytics = dashboardBundle?.analytics || {};
   const leaderboard = dashboardBundle?.leaderboard || [];
   const studentCount = Number(analytics.total_students || students.length || 0);
@@ -337,8 +387,9 @@ export default function AdminApp({ onLogout }) {
             Tambah Kelas
           </button>
         </section>
-        {classes.length === 0 && <EmptyState title="Belum ada kelas" message="Kelas akan tampil setelah dibuat dari panel admin." />}
-        {classes.map((item) => {
+        {classCollection.isLoadingInitial && <LazyLoadSkeleton count={4} />}
+        {!classCollection.isLoadingInitial && classes.length === 0 && <EmptyState title="Belum ada kelas" message="Kelas akan tampil setelah dibuat dari panel admin." />}
+        {!classCollection.isLoadingInitial && classes.map((item) => {
           const title = item.name;
           const subtitle = `${item.student_count || 0} siswa - wali ${item.homeroom_teacher_name || 'belum diatur'}`;
 
@@ -353,6 +404,13 @@ export default function AdminApp({ onLogout }) {
           />
           );
         })}
+        <InfiniteScrollSentinel
+          error={classCollection.error}
+          hasNextPage={classCollection.hasNextPage}
+          isLoading={classCollection.isLoadingMore}
+          onRetry={classCollection.loadMore}
+          sentinelRef={classCollection.sentinelRef}
+        />
       </>
     ),
     subjects: (
@@ -373,8 +431,9 @@ export default function AdminApp({ onLogout }) {
             Tambah Mapel
           </button>
         </section>
-        {subjects.length === 0 && <EmptyState title="Belum ada mapel" message="Mata pelajaran akan tampil setelah dibuat dari panel admin." />}
-        {subjects.map((item) => {
+        {subjectCollection.isLoadingInitial && <LazyLoadSkeleton count={4} />}
+        {!subjectCollection.isLoadingInitial && subjects.length === 0 && <EmptyState title="Belum ada mapel" message="Mata pelajaran akan tampil setelah dibuat dari panel admin." />}
+        {!subjectCollection.isLoadingInitial && subjects.map((item) => {
           const title = item.name;
 
           return (
@@ -391,6 +450,13 @@ export default function AdminApp({ onLogout }) {
           />
           );
         })}
+        <InfiniteScrollSentinel
+          error={subjectCollection.error}
+          hasNextPage={subjectCollection.hasNextPage}
+          isLoading={subjectCollection.isLoadingMore}
+          onRetry={subjectCollection.loadMore}
+          sentinelRef={subjectCollection.sentinelRef}
+        />
       </>
     ),
     profile: (

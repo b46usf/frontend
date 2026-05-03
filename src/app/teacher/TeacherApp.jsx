@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FiActivity, FiAlertTriangle, FiBarChart2, FiBook, FiCheckCircle, FiClipboard, FiEdit3, FiFileText, FiHome, FiPlusCircle, FiTrendingDown, FiUser, FiUsers } from 'react-icons/fi';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
@@ -16,6 +16,9 @@ import PerformanceTrendPanel from '../../components/analytics/PerformanceTrendPa
 import RiskStudentPanel from '../../components/teacher/RiskStudentPanel.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
 import EmptyState from '../../components/ai/EmptyState.jsx';
+import InfiniteScrollSentinel from '../../components/loading/InfiniteScrollSentinel.jsx';
+import LazyLoadSkeleton from '../../components/loading/LazyLoadSkeleton.jsx';
+import { useInfiniteCollection } from '../../hooks/useInfiniteCollection.js';
 import { useUserStore } from '../../store/userStore.js';
 import { api } from '../../services/api.js';
 import { normalizeLevelDistribution, normalizeTrendSeries } from '../../services/adapters.js';
@@ -29,6 +32,9 @@ const navItems = [
   { id: 'profile', label: 'Profil', icon: FiUser },
 ];
 
+const STUDENT_PAGE_SIZE = 10;
+const ATTEMPT_PAGE_SIZE = 8;
+
 export default function TeacherApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const dashboardBundle = useUserStore((state) => state.dashboards.teacher);
@@ -36,8 +42,30 @@ export default function TeacherApp({ onLogout }) {
   const classes = dashboardBundle?.classes || [];
   const riskStudents = dashboardBundle?.riskStudents || [];
   const analytics = dashboardBundle?.analytics || {};
-  const students = dashboardBundle?.students || [];
-  const attempts = dashboardBundle?.attempts || [];
+  const dashboardStudents = dashboardBundle?.students || [];
+  const dashboardAttempts = dashboardBundle?.attempts || [];
+  const fetchStudentPage = useCallback(
+    ({ page, limit }) => api.listStudents({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const fetchAttemptPage = useCallback(
+    ({ page, limit }) => api.listAttempts({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const studentCollection = useInfiniteCollection({
+    fetchPage: fetchStudentPage,
+    initialItems: dashboardStudents,
+    pageSize: STUDENT_PAGE_SIZE,
+    resetKey: 'teacher-students',
+  });
+  const attemptCollection = useInfiniteCollection({
+    fetchPage: fetchAttemptPage,
+    initialItems: dashboardAttempts,
+    pageSize: ATTEMPT_PAGE_SIZE,
+    resetKey: 'teacher-attempts',
+  });
+  const students = studentCollection.items;
+  const attempts = attemptCollection.items;
   const recommendations = dashboardBundle?.recommendations || [];
   const materials = dashboardBundle?.materials || [];
   const averageScore = Math.round(Number(analytics.average_quiz_score || 0));
@@ -207,8 +235,9 @@ export default function TeacherApp({ onLogout }) {
         <div className="role-section-card rounded-[18px] p-3">
           <h3 className="text-[14px] font-black leading-5">Detail Siswa</h3>
           <div className="mt-3 grid gap-2">
-            {students.length === 0 && <EmptyState title="Belum ada siswa" message="Daftar siswa akan tampil setelah data kelas tersedia." />}
-            {students.map((student) => (
+            {studentCollection.isLoadingInitial && <LazyLoadSkeleton count={4} />}
+            {!studentCollection.isLoadingInitial && students.length === 0 && <EmptyState title="Belum ada siswa" message="Daftar siswa akan tampil setelah data kelas tersedia." />}
+            {!studentCollection.isLoadingInitial && students.map((student) => (
               <div key={student.id || student.user_id || student.name} className="role-row flex items-center justify-between gap-3 rounded-[15px] p-2.5">
                 <span className="break-words text-[12px] font-black leading-4">{student.name}</span>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${student.risk_status === 'danger' ? 'role-pill-danger' : 'role-pill-success'}`}>
@@ -218,6 +247,13 @@ export default function TeacherApp({ onLogout }) {
             ))}
           </div>
         </div>
+        <InfiniteScrollSentinel
+          error={studentCollection.error}
+          hasNextPage={studentCollection.hasNextPage}
+          isLoading={studentCollection.isLoadingMore}
+          onRetry={studentCollection.loadMore}
+          sentinelRef={studentCollection.sentinelRef}
+        />
       </>
     ),
     tasks: (
@@ -229,8 +265,9 @@ export default function TeacherApp({ onLogout }) {
           trailing={<FiClipboard className="shrink-0 text-[20px] text-royal" />}
         />
         <RoleActionGrid actions={taskActionsWithHandlers} />
-        {attempts.length === 0 && <EmptyState title="Belum ada attempt" message="Hasil penilaian akan tampil setelah siswa mengirim kuis." />}
-        {attempts.slice(0, 5).map((attempt, index) => (
+        {attemptCollection.isLoadingInitial && <LazyLoadSkeleton count={4} />}
+        {!attemptCollection.isLoadingInitial && attempts.length === 0 && <EmptyState title="Belum ada attempt" message="Hasil penilaian akan tampil setelah siswa mengirim kuis." />}
+        {!attemptCollection.isLoadingInitial && attempts.map((attempt, index) => (
           <RoleListCard
             key={attempt.id || `${attempt.quiz_title}-${index}`}
             title={attempt.quiz_title || 'Kuis'}
@@ -238,6 +275,13 @@ export default function TeacherApp({ onLogout }) {
             trailing={<span className="role-pill rounded-full px-3 py-1 text-[11px] font-black">Aktif</span>}
           />
         ))}
+        <InfiniteScrollSentinel
+          error={attemptCollection.error}
+          hasNextPage={attemptCollection.hasNextPage}
+          isLoading={attemptCollection.isLoadingMore}
+          onRetry={attemptCollection.loadMore}
+          sentinelRef={attemptCollection.sentinelRef}
+        />
       </>
     ),
     analytics: (

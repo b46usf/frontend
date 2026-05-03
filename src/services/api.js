@@ -36,6 +36,18 @@ function buildUrl(path) {
   return `${normalizedBase}${normalizedPath}`;
 }
 
+function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    query.set(key, String(value));
+  });
+
+  const queryString = query.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
 async function readPayload(response) {
   const text = await response.text();
 
@@ -50,7 +62,7 @@ async function readPayload(response) {
   }
 }
 
-export async function apiRequest(path, options = {}) {
+async function requestPayload(path, options = {}) {
   const { method = 'GET', body, token = getAuthToken(), headers = {} } = options;
   const requestHeaders = {
     Accept: 'application/json',
@@ -88,7 +100,33 @@ export async function apiRequest(path, options = {}) {
     }
   }
 
+  return payload;
+}
+
+export async function apiRequest(path, options = {}) {
+  const payload = await requestPayload(path, options);
+
   return payload?.data ?? null;
+}
+
+export async function apiRequestWithMeta(path, options = {}) {
+  const payload = await requestPayload(path, options);
+
+  return {
+    data: payload?.data ?? null,
+    meta: payload?.meta || {},
+  };
+}
+
+function mapListResponse(response, mapper) {
+  if (response && Object.prototype.hasOwnProperty.call(response, 'meta')) {
+    return {
+      ...response,
+      data: (response.data || []).map(mapper),
+    };
+  }
+
+  return (response || []).map(mapper);
 }
 
 export const api = {
@@ -112,18 +150,68 @@ export const api = {
     return apiRequest('/auth/me');
   },
 
+  listMaterials(params = {}, options = {}) {
+    const request = options.withMeta
+      ? apiRequestWithMeta(`/materials${buildQuery(params)}`)
+      : apiRequest(`/materials${buildQuery(params)}`);
+
+    return request.then((response) => mapListResponse(response, normalizeMaterial));
+  },
+
+  listQuizzes(params = {}, options = {}) {
+    if (typeof params === 'string') {
+      return apiRequest(`/quizzes${params}`).then(normalizeQuizList);
+    }
+
+    const request = options.withMeta
+      ? apiRequestWithMeta(`/quizzes${buildQuery(params)}`)
+      : apiRequest(`/quizzes${buildQuery(params)}`);
+
+    return request.then((response) => mapListResponse(response, normalizeQuiz));
+  },
+
+  listStudents(params = {}, options = {}) {
+    return options.withMeta
+      ? apiRequestWithMeta(`/students${buildQuery(params)}`)
+      : apiRequest(`/students${buildQuery(params)}`);
+  },
+
+  listAttempts(params = {}, options = {}) {
+    return options.withMeta
+      ? apiRequestWithMeta(`/assessments/attempts${buildQuery(params)}`)
+      : apiRequest(`/assessments/attempts${buildQuery(params)}`);
+  },
+
+  listClasses(params = {}, options = {}) {
+    return options.withMeta
+      ? apiRequestWithMeta(`/admin/classes${buildQuery(params)}`)
+      : apiRequest(`/admin/classes${buildQuery(params)}`);
+  },
+
+  listSubjects(params = {}, options = {}) {
+    return options.withMeta
+      ? apiRequestWithMeta(`/admin/subjects${buildQuery(params)}`)
+      : apiRequest(`/admin/subjects${buildQuery(params)}`);
+  },
+
+  listTeachers(params = {}, options = {}) {
+    return options.withMeta
+      ? apiRequestWithMeta(`/teachers${buildQuery(params)}`)
+      : apiRequest(`/teachers${buildQuery(params)}`);
+  },
+
   getStudentDashboard() {
     return Promise.all([
       apiRequest('/students/me/dashboard'),
-      apiRequest('/students/me/recommendations'),
-      apiRequest('/students/me/progress'),
-      apiRequest('/students/me/badges'),
+      apiRequest('/students/me/recommendations?page=1&limit=8'),
+      apiRequest('/students/me/progress?page=1&limit=8'),
+      apiRequest('/students/me/badges?page=1&limit=8'),
       apiRequest('/ai/diagnostic').then(normalizeDiagnostic),
       apiRequest('/ai/learning-path/me'),
       apiRequest('/ai/feedback-card/me').then(normalizeAssessment).catch(() => null),
       apiRequest('/ai/performance/me').catch(() => null),
-      apiRequest('/materials').then((items) => items.map(normalizeMaterial)),
-      apiRequest('/quizzes?quizType=practice').then(normalizeQuizList),
+      apiRequest('/materials?page=1&limit=8').then((items) => items.map(normalizeMaterial)),
+      apiRequest('/quizzes?quizType=practice&page=1&limit=6').then(normalizeQuizList),
     ]).then(([dashboard, recommendations, progress, badges, diagnostic, learningPath, feedback, performance, materials, quizzes]) => ({
       dashboard,
       recommendations,
@@ -141,12 +229,12 @@ export const api = {
   getTeacherDashboard() {
     return Promise.all([
       apiRequest('/teachers/classes/dashboard'),
-      apiRequest('/ai/risk-students').then((items) => items.map(normalizeRiskStudent)),
+      apiRequest('/ai/risk-students?page=1&limit=8').then((items) => items.map(normalizeRiskStudent)),
       apiRequest('/ai/recommendations'),
       apiRequest('/analytics/dashboard'),
-      apiRequest('/students'),
-      apiRequest('/assessments/attempts'),
-      apiRequest('/materials').then((items) => items.map(normalizeMaterial)),
+      apiRequest('/students?page=1&limit=10'),
+      apiRequest('/assessments/attempts?page=1&limit=8'),
+      apiRequest('/materials?page=1&limit=8').then((items) => items.map(normalizeMaterial)),
     ]).then(([classDashboard, riskStudents, recommendations, analytics, students, attempts, materials]) => ({
       classes: classDashboard?.classes || [],
       interventionQueue: classDashboard?.intervention_queue || [],
@@ -161,11 +249,11 @@ export const api = {
 
   getAdminDashboard() {
     return Promise.all([
-      apiRequest('/admin/classes'),
-      apiRequest('/admin/subjects'),
+      apiRequest('/admin/classes?page=1&limit=8'),
+      apiRequest('/admin/subjects?page=1&limit=8'),
       apiRequest('/analytics/dashboard'),
-      apiRequest('/teachers'),
-      apiRequest('/students'),
+      apiRequest('/teachers?page=1&limit=8'),
+      apiRequest('/students?page=1&limit=10'),
       apiRequest('/gamification/leaderboard'),
     ]).then(([classes, subjects, analytics, teachers, students, leaderboard]) => ({
       classes,
@@ -196,10 +284,6 @@ export const api = {
         answers: answersToPayload(answers),
       },
     }).then(normalizeAssessment);
-  },
-
-  listQuizzes(query = '') {
-    return apiRequest(`/quizzes${query}`).then(normalizeQuizList);
   },
 
   getQuiz(id) {

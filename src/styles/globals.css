@@ -2237,3 +2237,47 @@ textarea {
   background: var(--surface-soft) !important;
   color: var(--text-main) !important;
 }
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-line {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted) 16%, var(--surface));
+}
+
+.skeleton-line::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface) 62%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.15s ease-in-out infinite;
+}
+
+.infinite-sentinel {
+  grid-column: 1 / -1;
+  min-height: 0.25rem;
+}
+
+.infinite-retry {
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--royal);
+  box-shadow: var(--shadow-soft);
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}

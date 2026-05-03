@@ -1,5 +1,5 @@
 import { FiActivity, FiAward, FiBarChart2, FiBookOpen, FiCheckCircle, FiClock, FiGlobe, FiHome, FiPlay, FiTarget, FiTrendingUp, FiUser, FiZap } from 'react-icons/fi';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppShell from '../../components/layout/AppShell.jsx';
 import SearchBar from '../../components/layout/SearchBar.jsx';
 import StatCard from '../../components/cards/StatCard.jsx';
@@ -18,6 +18,9 @@ import DiagnosticTestCard from '../../components/diagnostic/DiagnosticTestCard.j
 import PerformanceTrendPanel from '../../components/analytics/PerformanceTrendPanel.jsx';
 import ThemePreference from '../../components/layout/ThemePreference.jsx';
 import EmptyState from '../../components/ai/EmptyState.jsx';
+import InfiniteScrollSentinel from '../../components/loading/InfiniteScrollSentinel.jsx';
+import LazyLoadSkeleton from '../../components/loading/LazyLoadSkeleton.jsx';
+import { useInfiniteCollection } from '../../hooks/useInfiniteCollection.js';
 import { useLearningStore } from '../../store/learningStore.js';
 import { useQuizStore } from '../../store/quizStore.js';
 import { useUserStore } from '../../store/userStore.js';
@@ -47,6 +50,8 @@ const subjectMeta = {
 };
 
 const getSubjectMeta = (subject) => subjectMeta[String(subject || '').trim().toUpperCase()] || subjectMeta.DEFAULT;
+const MATERIAL_PAGE_SIZE = 8;
+const QUIZ_PAGE_SIZE = 6;
 
 export default function StudentApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('home');
@@ -64,8 +69,30 @@ export default function StudentApp({ onLogout }) {
   const backendProgressSummary = backendDashboard?.progress_summary;
   const backendPerformance = dashboardBundle?.performance;
   const backendDiagnostic = dashboardBundle?.diagnostic;
-  const backendMaterials = dashboardBundle?.materials || [];
-  const backendQuizzes = dashboardBundle?.quizzes || [];
+  const dashboardMaterials = dashboardBundle?.materials || [];
+  const dashboardQuizzes = dashboardBundle?.quizzes || [];
+  const fetchMaterialPage = useCallback(
+    ({ page, limit }) => api.listMaterials({ page, limit }, { withMeta: true }),
+    [],
+  );
+  const fetchQuizPage = useCallback(
+    ({ page, limit }) => api.listQuizzes({ quizType: 'practice', page, limit }, { withMeta: true }),
+    [],
+  );
+  const materialCollection = useInfiniteCollection({
+    fetchPage: fetchMaterialPage,
+    initialItems: dashboardMaterials,
+    pageSize: MATERIAL_PAGE_SIZE,
+    resetKey: 'student-materials',
+  });
+  const quizCollection = useInfiniteCollection({
+    fetchPage: fetchQuizPage,
+    initialItems: dashboardQuizzes,
+    pageSize: QUIZ_PAGE_SIZE,
+    resetKey: 'student-quizzes',
+  });
+  const backendMaterials = materialCollection.items;
+  const backendQuizzes = quizCollection.items;
   const backendBadges = dashboardBundle?.badges?.length ? dashboardBundle.badges : backendDashboard?.badges;
   const backendRecommendations = dashboardBundle?.recommendations?.length
     ? dashboardBundle.recommendations
@@ -153,6 +180,20 @@ export default function StudentApp({ onLogout }) {
       .then(setBackendQuiz)
       .catch(() => {});
   }, [backendQuiz, backendQuizzes]);
+
+  const selectQuiz = async (quizId) => {
+    if (!quizId || quizId === activeQuizId) return;
+
+    quiz.resetQuiz();
+    setBackendAssessment(null);
+
+    try {
+      const nextQuiz = await api.getQuiz(quizId);
+      setBackendQuiz(nextQuiz);
+    } catch (error) {
+      showToast({ icon: 'error', title: error.message || 'Gagal membuka kuis' });
+    }
+  };
 
   useEffect(() => {
     if (!learning.selectedSubject && displaySubjects[0]) {
@@ -302,7 +343,9 @@ export default function StudentApp({ onLogout }) {
           </div>
           <span className="shrink-0 rounded-full bg-gold/20 px-3 py-1 text-[11px] font-black text-gold">{displaySubjects.length} Mapel</span>
         </div>
-        {displaySubjects.length === 0 && <EmptyState title="Belum ada mapel" message="Materi backend akan tampil di sini setelah tersedia." />}
+        {materialCollection.isLoadingInitial && <LazyLoadSkeleton count={4} variant="subject" />}
+        {!materialCollection.isLoadingInitial && displaySubjects.length === 0 && <EmptyState title="Belum ada mapel" message="Materi backend akan tampil di sini setelah tersedia." />}
+        {!materialCollection.isLoadingInitial && (
         <div className="grid grid-cols-2 gap-2.5">
           {displaySubjects.map((subject) => {
             const meta = getSubjectMeta(subject);
@@ -333,6 +376,16 @@ export default function StudentApp({ onLogout }) {
             );
           })}
         </div>
+        )}
+        <InfiniteScrollSentinel
+          error={materialCollection.error}
+          hasNextPage={materialCollection.hasNextPage}
+          isLoading={materialCollection.isLoadingMore}
+          onRetry={materialCollection.loadMore}
+          sentinelRef={materialCollection.sentinelRef}
+          skeletonCount={2}
+          skeletonVariant="subject"
+        />
         <LearningPathCard subject={learning.selectedSubject} level={activeLevel} progress={averageProgress} lessons={backendMaterials.filter((material) => material.subjectName === learning.selectedSubject).length} />
         <button onClick={completeLesson} disabled={isSavingLesson} className="flex h-12 w-full items-center justify-center rounded-[18px] bg-gold px-4 text-[13px] font-black text-navy shadow-gold disabled:cursor-wait disabled:opacity-70" type="button">
           <FiPlay className="mr-2 inline" /> {isSavingLesson ? 'Menyimpan...' : `Mulai ${nextMaterialTitle}`}
@@ -367,6 +420,37 @@ export default function StudentApp({ onLogout }) {
         {activeQuizQuestions.map((question) => (
           <QuizCard key={question.id} question={question} value={quiz.answers[question.id]} onChange={(value) => quiz.answerQuestion(question.id, value)} />
         ))}
+        <section className="role-section-card rounded-[18px] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-royal">Bank Kuis</p>
+              <h2 className="text-[15px] font-black leading-5">Latihan tersedia</h2>
+            </div>
+            <span className="role-pill shrink-0 rounded-full px-3 py-1 text-[11px] font-black">{quizCollection.meta.total} Kuis</span>
+          </div>
+        </section>
+        {quizCollection.isLoadingInitial && <LazyLoadSkeleton count={3} />}
+        {!quizCollection.isLoadingInitial && backendQuizzes.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => selectQuiz(item.id)}
+            className={`role-list-card flex items-center justify-between gap-3 rounded-[18px] p-3 text-left ${item.id === activeQuizId ? 'ring-2 ring-[var(--gold)]' : ''}`}
+          >
+            <span className="min-w-0">
+              <span className="block break-words text-[13px] font-black leading-5">{item.title}</span>
+              <span className="block break-words text-[11px] font-bold leading-4 text-slate-500">{item.subjectName || 'Practice'} - {item.questionCount} soal</span>
+            </span>
+            <span className="role-pill shrink-0 rounded-full px-3 py-1 text-[11px] font-black">{item.levelLabel || levelStatus.label}</span>
+          </button>
+        ))}
+        <InfiniteScrollSentinel
+          error={quizCollection.error}
+          hasNextPage={quizCollection.hasNextPage}
+          isLoading={quizCollection.isLoadingMore}
+          onRetry={quizCollection.loadMore}
+          sentinelRef={quizCollection.sentinelRef}
+        />
         <button onClick={submitQuiz} disabled={isSubmittingQuiz || quizAnsweredCount === 0} className="student-primary-btn flex h-12 w-full items-center justify-center rounded-[18px] px-4 text-[13px] font-black text-white disabled:cursor-wait disabled:opacity-60" type="button">
           <FiCheckCircle className="mr-2" />
           {isSubmittingQuiz ? 'Mengirim...' : 'Kirim Jawaban'}
